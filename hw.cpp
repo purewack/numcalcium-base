@@ -127,6 +127,21 @@ void soft_i2s_deinit(){
 // #define COMMS_MISO PB14 
 // #define COMMS_CK   PB13 
 // #define COMMS_CS PB12   //WS - bsr.12.28
+//TIM4 CH 1 = PB6
+//TIM4 CH 2 = PB7
+//TIM1 CH2  = PA9
+//TIM1 CH3  = PA10
+//TIM2 CH2  = PA1
+//https://i0.wp.com/blog.io-expert.com/wp-content/uploads/2019/08/clocks.png
+//bit banging of WS, BCK, DATA on PB port pins 12,13,14 respectively
+//GPIOB_BSSR register [0:15] set, [16:31] reset, non intrusive on other port pins - dma compatible
+
+//either 
+//  Timer_IRQ@srate -> (buf -> DMA -> GPIO_BSSR)
+//or
+//  DMA_IRQ(n)@halfbuf -> (buf -> Timer(n) -> Timer(n)CCMP_Pin)
+
+
 void soft_i2s_bits_irq(){
   auto r = dma_get_irq_cause(DMA1, DMA_CH2) == DMA_TRANSFER_COMPLETE ? 1 : 0;
   auto rr = 16*r;
