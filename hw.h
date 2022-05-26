@@ -23,9 +23,9 @@
 
 struct hw_t
 {
-  #define S_BIT(n,b) n |= (1<<(b-1))
-  #define C_BIT(n,b) n &= ~(1<<(b-1))
-  #define BUTTON(b) (1<<(b-1))
+  #define S_BIT(n,b) n |= (1<<(b))
+  #define C_BIT(n,b) n &= ~(1<<(b))
+  #define BUTTON(b) (1<<(b))
   uint32_t bstate;
   uint32_t bstate_old;
   uint32_t bscan_down;
@@ -38,12 +38,34 @@ struct hw_t
   const uint8_t seq_row[7] = {14,15,3,4,8};
   uint8_t row;
   uint8_t op;
-  timer_dev* mux_timer;
+  uint8_t inited = 0;
 };
 
+struct audio_buf_t {
+  const uint8_t buf_len = 128;
+  int16_t buf[128];
+  uint8_t buf_i;
+  uint8_t req = 0;
+};
+struct soft_i2s_t{
+  uint32_t dout_bits[32];
+  uint8_t inited = 0;
+};
+
+// struct pwm_dac_t{
+//   uint8_t inited = 0;
+// };
 
 void io_mux_init();
 void io_mux_irq();
+
+void soft_i2s_init();
+void soft_i2s_deinit();
+void soft_i2s_bits_irq();
+
+void pwm_audio_init();
+void pwm_audio_deinit();
+void pwm_audio_irq();
 
 void benchSetup();
 void benchStart();
