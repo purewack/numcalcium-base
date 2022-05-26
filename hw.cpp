@@ -65,9 +65,14 @@ void io_mux_irq(){
     gpio_write_bit(io.row < 2 ? GPIOA : GPIOB, io.seq_row[io.row], 1);
     io.op = 1;
     io.lcd_fade_shadow += io.lcd_fade;
-    if(io.lcd_fade_shadow <= 0) io.lcd_fade = 0;
-    if(io.lcd_fade_shadow <= io.lcd_low) io.lcd_fade = 0;
-    if(io.lcd_fade_shadow >= io.lcd_hi) io.lcd_fade = 0;
+    if(io.lcd_fade_shadow <= io.lcd_low)  {
+      io.lcd_fade = 0;
+      io.lcd_fade_shadow = io.lcd_low;
+    }
+    if(io.lcd_fade_shadow >= io.lcd_hi-1) {
+      io.lcd_fade = 0;
+      io.lcd_fade_shadow = io.lcd_hi;
+    }
     return;
   }
 
