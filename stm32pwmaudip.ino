@@ -4,7 +4,24 @@
 #include <libmaple/gpio.h>
 #include "boards.h"
 #include "io.h"
+
+#define DEBUG
+#define VERBOSE
 #define LOGL(X) Serial.println(X)
+#define LOGNL(X) Serial.print(X)
+#include "libintdsp/libintdsp.h"
+#include "libintdsp/config.h"
+#include "libintdsp/_source/types.h"
+#include "libintdsp/_source/dsp.h"
+#include "libintdsp/_source/lifecycle.h"
+#include "libintdsp/_source/tables.h"
+#include "libintdsp/_source/init.c"
+#include "libintdsp/_source/graph.c"
+#include "libintdsp/_source/nodes.c"
+agraph_t gg;
+int16_t spl_out_a,spl_out_b;
+
+
 #define SYS_PDOWN PB5
 
 #define LCD_LIGHT PA6
@@ -30,16 +47,18 @@
 
 #define GP_A PA0
 #define GP_B PA1
-#define COMMS_SDA PB7
+////////////////////////
+#define COMMS_SDA PB7 //BCK
 #define COMMS_SDL PB6
-#define COMMS_MOSI PB15
-#define COMMS_MISO PB14
-#define COMMS_CK   PB13
-#define COMMS_CS PB12
+////////////////////////
+#define COMMS_MOSI PB15 //DOUT - bsr.15.31
+#define COMMS_MISO PB14 
+#define COMMS_CK   PB13 
+#define COMMS_CS PB12   //WS - bsr.12.28
+///////////////////////
 #define COMMS_RX PA10
 #define COMMS_TX PA9
-
-#define BENCH_PIN COMMS_SDA
+////////////////////////
 
 #define K_Y 0
 #define K_0 1
@@ -62,121 +81,263 @@
 #define K_F3 18
 #define K_X 19
 
-struct t_io {
-  volatile uint8_t state;
-  volatile uint8_t old_state;
-};
-
 struct HW
 {
-  volatile t_io io[20];
-  const uint8_t rows[6] = {ROW_A, ROW_B, ROW_C, ROW_D, ROW_E, ROW_F};
-  const uint8_t cols[4] = {SEG_A, SEG_B, SEG_C, SEG_D};
-  uint8_t itr;
+  #define S_BIT(n,b) n |= (1<<(b-1))
+  #define C_BIT(n,b) n &= ~(1<<(b-1))
+  #define BUTTON(b) (1<<(b-1))
+  uint32_t bstate;
+  uint32_t bstate_old;
+  uint32_t bscan_down;
+  uint32_t bscan_up;
+  uint8_t ok;
+  int turns;
+  int turns_old;
+  int turns_state;
+  int turns_state_old;
+  const uint8_t seq_row[7] = {14,15,3,4,8};
   uint8_t row;
+  uint8_t op;
   timer_dev* timer;
 } kmux;
 
-void kmux_irq(){
-  digitalWrite(kmux.rows[kmux.row],1);
-  kmux.io[kmux.itr+0].state = digitalRead(kmux.cols[0]);
-  kmux.io[kmux.itr+1].state = digitalRead(kmux.cols[1]);
-  kmux.io[kmux.itr+2].state = digitalRead(kmux.cols[2]);
-  kmux.io[kmux.itr+3].state = digitalRead(kmux.cols[3]);
-  digitalWrite(kmux.rows[kmux.row],0);
+void kmux_init(){
+  gpio_set_mode(GPIOA, 14, GPIO_OUTPUT_PP);
+  gpio_set_mode(GPIOA, 15, GPIO_OUTPUT_PP);
+  gpio_set_mode(GPIOB, 3, GPIO_OUTPUT_PP);
+  gpio_set_mode(GPIOB, 4, GPIO_OUTPUT_PP);
+  gpio_set_mode(GPIOB, 8, GPIO_OUTPUT_PP);
+  gpio_set_mode(GPIOB, 9, GPIO_OUTPUT_PP);
 
-  kmux.itr = (kmux.itr+4)%20;
-  kmux.row = (kmux.row+1)%5;
+  gpio_set_mode(GPIOB, 11, GPIO_INPUT_PD);
+  gpio_set_mode(GPIOB, 10, GPIO_INPUT_PD);
+  gpio_set_mode(GPIOB, 1, GPIO_INPUT_PD);
+  gpio_set_mode(GPIOB, 0, GPIO_INPUT_PD);
+
+  gpio_set_mode(GPIOA, 8, GPIO_INPUT_PD);
 }
 
-struct osc_t{
-  uint16_t phi;
-  uint16_t acc;
-  int16_t* table;
-};
+void kmux_irq(){
 
-osc_t osc;
-int16_t sint[256];
-
-struct pwm_dac_t{
-  dma_dev* dma;
-  dma_channel dma_ch_a;
-  dma_channel dma_ch_b;
-
-  timer_dev* timer;
-
-  uint16_t buf_a[64];
-  uint16_t buf_b[64];
-  uint8_t buf_len;
-  uint8_t req = 0;
-} pwm_dac;
-
-void setup() {
-  Serial.begin(9600);
-  Serial.println("setup start");
-  for(int i=0; i<256; i++){
-    sint[i] = int16_t(512.f * sin(2.0f * 3.1415f * float(i)/256.f));
+  if(kmux.op == 0){
+    gpio_write_bit(kmux.row < 2 ? GPIOA : GPIOB, kmux.seq_row[kmux.row], 1);
+    kmux.op = 1;
+    return;
   }
-  int f = 60;
-  osc.table = sint;
-  osc.acc = (256*256*f)/46875;
-  osc.phi = 0;
 
- disableDebugPorts();
-  for(int i=0; i<4; i++)
-    pinMode(kmux.cols[i], INPUT_PULLDOWN);
-  for(int i=0; i<6; i++)
-    pinMode(kmux.rows[i], OUTPUT);
+  else if(kmux.op == 1){
+    auto a = GPIOB->regs->IDR;
+    gpio_write_bit(kmux.row < 2 ? GPIOA : GPIOB, kmux.seq_row[kmux.row], 0);
+
+    auto readbyte = ((a&0xc00)>>8) | (a&0x3);
+    kmux.bstate_old = kmux.bstate;
+    kmux.bstate &= ~(0xf<<(kmux.row*4));
+    kmux.bstate |= (readbyte<<(kmux.row*4));
+    kmux.bscan_down |= (kmux.bstate & (~kmux.bstate_old));
+    kmux.bscan_up |= (kmux.bstate_old & (~kmux.bstate));
+    
+    kmux.row = (kmux.row+1)%5;
+    kmux.op = 2;
+    return;
+  }
+  
+  else if(kmux.op == 2){
+    gpio_write_bit(GPIOB, 9, 1);
+    kmux.ok = gpio_read_bit(GPIOA, 8);
+    kmux.op = 3;
+    return;
+  }
+
+
+  kmux.op = 0;
+  // auto a = GPIOB->regs->IDR;
+  // kmux.io[20].state = (a&(1<<11))>>11;
+  // kmux.io[21].state = (a&(1<<10))>>10;
+  // gpio_write_bit(GPIOB, 9, 0);
+
+  // kmux.turns_state = (kmux.io[20].state<<0) | (kmux.io[21].state<<1) | (kmux.io[20].state_old<<2) | (kmux.io[21].state_old<<3);
+  // kmux.io[20].state_old = kmux.io[20].state;
+  // kmux.io[21].state_old = kmux.io[21].state;
+
+  // if(kmux.turns_state == 0b0001){
+  //   if(kmux.turns < 0) kmux.turns = 0;
+  //   kmux.turns++;
+  // }
+  // else if(kmux.turns_state == 0b1101){
+  //   if(kmux.turns > 0) kmux.turns = 0;
+  //   kmux.turns--;
+  // }
+
+}
+
+
+void benchSetup(){
+  //gpio_set_mode(GPIOB, 14, GPIO_OUTPUT_PP);
+}
+
+void benchStart(){
+  //GPIOB->regs->BSRR = 1<<14;
+}
+
+void benchEnd(){
+  //GPIOB->regs->BSRR = (1<<14)<<16;
+}
+//TIM4 CH 1 = PB6
+//TIM4 CH 2 = PB7
+//TIM1 CH2  = PA9
+//TIM1 CH3  = PA10
+//TIM2 CH2  = PA1
+//https://i0.wp.com/blog.io-expert.com/wp-content/uploads/2019/08/clocks.png
+//bit banging of WS, BCK, DATA on PB port pins 12,13,14 respectively
+//GPIOB_BSSR register [0:15] set, [16:31] reset, non intrusive on other port pins - dma compatible
+
+//either 
+//  Timer_IRQ@srate -> (buf -> DMA -> GPIO_BSSR)
+//or
+//  DMA_IRQ(n)@halfbuf -> (buf -> Timer(n) -> Timer(n)CCMP_Pin)
+struct soft_i2s_t{
+  uint32_t dout_bits[32];
+  int16_t buf[128];
+  uint8_t buf_len;
+  uint8_t buf_i;
+  uint8_t req = 0;
+} i2s;
+
+// #define COMMS_MOSI PB15 //DOUT - bsr.15.31
+// #define COMMS_MISO PB14 
+// #define COMMS_CK   PB13 
+// #define COMMS_CS PB12   //WS - bsr.12.28
+void i2s_bits_irq(){
+  auto r = dma_get_irq_cause(DMA1, DMA_CH2) == DMA_TRANSFER_COMPLETE ? 1 : 0;
+  auto rr = 16*r;
+  auto ws = 0x90000000 | (0x1000*r);
+  auto s = i2s.buf[i2s.buf_i];
+  i2s.dout_bits[0+rr] = (( s & (0x8000>>0))<<0) | ws;
+  i2s.dout_bits[1+rr] = (( s & (0x8000>>1))<<1) | ws;
+  i2s.dout_bits[2+rr] = (( s & (0x8000>>2))<<2) | ws;
+  i2s.dout_bits[3+rr] = (( s & (0x8000>>3))<<3) | ws;
+
+  i2s.dout_bits[4+rr] = (( s & (0x8000>>4))<<4) | ws;
+  i2s.dout_bits[5+rr] = (( s & (0x8000>>5))<<5) | ws;
+  i2s.dout_bits[6+rr] = (( s & (0x8000>>6))<<6) | ws;
+  i2s.dout_bits[7+rr] = (( s & (0x8000>>7))<<7) | ws;
+  
+  i2s.dout_bits[8 +rr] = (( s & (0x8000>>8 ))<<8 ) | ws;
+  i2s.dout_bits[9 +rr] = (( s & (0x8000>>9 ))<<9 ) | ws;
+  i2s.dout_bits[10+rr] = (( s & (0x8000>>10))<<10) | ws;
+  i2s.dout_bits[11+rr] = (( s & (0x8000>>11))<<11) | ws;
+  
+  i2s.dout_bits[12+rr] = (( s & (0x8000>>12))<<12) | ws;
+  i2s.dout_bits[13+rr] = (( s & (0x8000>>13))<<13) | ws;
+  i2s.dout_bits[14+rr] = (( s & (0x8000>>14))<<14) | ws;
+  i2s.dout_bits[15+rr] = (( s & (0x8000>>15))<<15) | ws;
+
+  if(i2s.buf_i+1 == i2s.buf_len) i2s.req = 2;
+  if(i2s.buf_i+1 == i2s.buf_len>>1) i2s.req = 1;
+  i2s.buf_i = (i2s.buf_i+1)%i2s.buf_len;
+}
+
+int16_t sin_setup(int16_t p){
+  return int16_t(sin(2.f*3.1415f * float(p)/float(LUT_COUNT)));
+}
+
+node_t* adr1;
+node_t* lpf1;
+void setup() {
+  disableDebugPorts();
+  benchSetup();
+  Serial.begin(9600);
+  LOGL("setup start");
+
+//////////////////////////// 
+
+  libintdsp_init(&gg,sin_setup);  
+  auto* dac = new_dac(&gg,"dac",&spl_out_a);
+  auto* dac2 = new_dac(&gg,"dac2",&spl_out_b);
+
+  auto os1 = new_osc(&gg,"osca");
+  auto os2 = new_osc(&gg,"oscb");
+    auto* os1_params = (osc_t*)os1->processor;
+    auto* os2_params = (osc_t*)os2->processor;
+    set_osc_freq(os1_params,4400,31250);
+    set_osc_freq(os2_params,3300,31250);
+    os1_params->gain = 20;
+    os2_params->gain = 20;
+    os2_params->table = sawt;
+
+  auto* os3 = new_osc(&gg,"oscc");
+    auto* os3_params = (osc_t*)os3->processor;
+    set_osc_freq(os3_params,550,31250);
+    os3_params->gain = 30;
+    
+  auto* lfo = new_osc(&gg,"lfo");
+    auto* lfo_params = (osc_t*)lfo->processor;
+    lfo_params->acc = 4;
+    lfo_params->bias = 1500;
+    lfo_params->gain = 5;
+
+  lpf1 = new_lpf(&gg,"lpf");
+    set_lpf_freq((lpf_t*)(lpf1->processor), 24000, 31250);
+    
+  adr1 = new_adr(&gg, "adr1");
+  set_adr_attack_ms((adr_t*)(adr1->processor), 1000, 31250);
+  set_adr_release_ms((adr_t*)(adr1->processor), 500, 31250);
+
+  LOGL("connecting");
+  connect(&gg,os1,adr1);
+  connect(&gg,os2,lpf1);
+  connect(&gg,lpf1,dac);
+  connect(&gg,adr1,dac);
+  connect(&gg,os3,dac2);
+  connect(&gg,lfo,os3);
+
+  // connect(&gg,os1,dac2);
+  // connect(&gg,os1,adr1);
+  // connect(&gg,adr1,dac);
+  LOGL("connected");
+
+
+///////////////////
+  kmux_init();
 
   kmux.itr = 0;
   kmux.timer = TIMER3;
   timer_pause(kmux.timer);
   //48M / 48 / 2000 = 25hz*20keys
   timer_set_prescaler(kmux.timer, 48);
-  timer_set_reload(kmux.timer, 2000);
+  timer_set_reload(kmux.timer, 1000);
   timer_attach_interrupt(kmux.timer, TIMER_UPDATE_INTERRUPT, kmux_irq);
   timer_enable_irq(kmux.timer, TIMER_UPDATE_INTERRUPT);
   timer_resume(kmux.timer);
-
-  pwm_dac.timer = TIMER2;
-  pwm_dac.dma = DMA1;
-  pwm_dac.dma_ch_a = DMA_CH5;
-  pwm_dac.dma_ch_b = DMA_CH7;
-  pwm_dac.buf_len = 64;
-
-  pinMode(GP_A, PWM);
-  pinMode(GP_B, PWM);
-  timer_pause(pwm_dac.timer);
-  timer_set_prescaler(pwm_dac.timer, 0);
-  timer_set_reload(pwm_dac.timer, 1024);
-  timer_dma_enable_req(pwm_dac.timer, 1);
-  timer_dma_enable_req(pwm_dac.timer, 2);
-  timer_resume(pwm_dac.timer);
-  __IO uint32 *tccr_a = &(pwm_dac.timer->regs).gen->CCR1;
-  __IO uint32 *tccr_b = &(pwm_dac.timer->regs).gen->CCR2;
-
-  dma_init(pwm_dac.dma);
-  dma_disable(pwm_dac.dma, pwm_dac.dma_ch_a);
-  dma_disable(pwm_dac.dma, pwm_dac.dma_ch_b);
-  int m = DMA_TRNS_CMPLT | DMA_HALF_TRNS | DMA_FROM_MEM | DMA_CIRC_MODE | DMA_MINC_MODE;
-  dma_setup_transfer(pwm_dac.dma, pwm_dac.dma_ch_a , tccr_a, DMA_SIZE_16BITS, pwm_dac.buf_a, DMA_SIZE_16BITS, m);
-  dma_setup_transfer(pwm_dac.dma, pwm_dac.dma_ch_b , tccr_b, DMA_SIZE_16BITS, pwm_dac.buf_b, DMA_SIZE_16BITS, m);
-  dma_set_num_transfers(pwm_dac.dma, pwm_dac.dma_ch_a, pwm_dac.buf_len);  
-  dma_set_num_transfers(pwm_dac.dma, pwm_dac.dma_ch_b, pwm_dac.buf_len);
-  dma_set_priority(pwm_dac.dma, pwm_dac.dma_ch_a, DMA_PRIORITY_HIGH);
-  dma_set_priority(pwm_dac.dma, pwm_dac.dma_ch_b, DMA_PRIORITY_HIGH);
-  dma_attach_interrupt(pwm_dac.dma, pwm_dac.dma_ch_a, [=](){
-    if(dma_get_irq_cause(pwm_dac.dma, pwm_dac.dma_ch_a) == DMA_TRANSFER_COMPLETE)
-      pwm_dac.req = 2;
-    else 
-      pwm_dac.req = 1; 
-  });
-  dma_enable(pwm_dac.dma, pwm_dac.dma_ch_a);
-  dma_enable(pwm_dac.dma, pwm_dac.dma_ch_b);
-
   
-  Serial.println("setup complete");
-  pinMode(BENCH_PIN,OUTPUT);
+///////////////////////
+  i2s.buf_len = 128;
+  i2s.buf_i = 0;
+
+  //timer4ch2 PB7 BCK
+  gpio_set_mode(GPIOB, 15, GPIO_OUTPUT_PP);
+  gpio_set_mode(GPIOB, 12, GPIO_OUTPUT_PP);
+  gpio_set_mode(GPIOB, 13, GPIO_AF_OUTPUT_PP);
+  timer_pause(TIMER1);
+  timer_set_prescaler(TIMER1, 0);
+  timer_set_compare(TIMER1, TIMER_CH1, 24-1);
+  timer_set_reload(TIMER1, 48-1);
+  timer_dma_enable_req(TIMER1, TIMER_CH1);
+  (TIMER1->regs.adv)->CCER |= 0b101;
+ 
+  dma_init(DMA1);
+  dma_disable(DMA1, DMA_CH2);
+  int m = DMA_TRNS_CMPLT | DMA_HALF_TRNS | DMA_FROM_MEM | DMA_CIRC_MODE | DMA_MINC_MODE;
+  dma_setup_transfer(DMA1, DMA_CH2 , (void*)&(GPIOB->regs->BSRR), DMA_SIZE_32BITS, i2s.dout_bits, DMA_SIZE_32BITS, m);
+  dma_set_num_transfers(DMA1, DMA_CH2, 32);  
+  dma_set_priority(DMA1, DMA_CH2, DMA_PRIORITY_HIGH);
+  dma_attach_interrupt(DMA1, DMA_CH2, i2s_bits_irq);
+  dma_enable(DMA1, DMA_CH2);
+
+  timer_resume(TIMER1);
+// //////////////////////
+  
+  LOGL("setup complete");
 }
 
 void loop() {
@@ -187,35 +348,37 @@ void loop() {
   // LOGL(kmux.itr);
   // LOGL("-------");
   // delay(500);
+  if(kmux.turns != kmux.turns_old){
+    kmux.turns_old = kmux.turns;
+    Serial.println(kmux.turns);
+  }
 
-  if(pwm_dac.req){
-  digitalWrite(BENCH_PIN,HIGH);
+  if(kmux.bscan_down & BUTTON(3)){
+    C_BIT(kmux.bscan_down, BUTTON(3));
+    set_lpf_freq((lpf_t*)(lpf1->processor), 8000, 31250);
+  } 
+  if(kmux.bscan_up & BUTTON(3)){
+    C_BIT(kmux.bscan_up, BUTTON(3));
+    set_lpf_freq((lpf_t*)(lpf1->processor), 24000, 31250);
+  }
+ 
+  if(i2s.req){
+    benchStart();
     int s = 0;
-    int e = pwm_dac.buf_len>>1;
-    if(pwm_dac.req == 2){
-      s = pwm_dac.buf_len>>1;
-      e = pwm_dac.buf_len;
+    int e = i2s.buf_len>>1;
+    if(i2s.req == 2){
+      s = i2s.buf_len>>1;
+      e = i2s.buf_len;
     }
-    pwm_dac.req = 0;
+    i2s.req = 0;
 
-    auto a = kmux.io[4].state ? osc.acc : osc.acc*2;
-
-    for(int i=s; i<e; i++){
-      osc.phi += a;
-      auto phi_dt = osc.phi & 0xFF;
-      auto phi_l = osc.phi >> 8;
-      auto phi_h = (phi_l + 1);
-      phi_h = phi_h & 0xFF;
-      
-      auto s_l = osc.table[phi_l];
-      auto s_h = osc.table[phi_h];
-      
-      auto intp = ( (s_h-s_l)*phi_dt ) >> 8;
-      int spl = s_l + intp;
-      spl = (spl*100 )>>8;
-      pwm_dac.buf_a[i] = uint16_t(spl + 512);
-      pwm_dac.buf_b[i] = pwm_dac.buf_a[i];
+    //((adr_t*)(adr1->processor))->state = kmux.io[0].state&STATE_BIT_CURRENT;
+    
+    for(int i=s; i<e; i+=2){
+      proc_graph(&gg);
+      i2s.buf[i] = spl_out_a;
+      i2s.buf[i+1] = spl_out_b;
     }
-  digitalWrite(BENCH_PIN,LOW);
+    benchEnd();
   }
 }
