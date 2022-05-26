@@ -42,18 +42,9 @@ struct hw_t
 };
 
 
-void io_mux_init()
-void io_mux_irq()
+void io_mux_init();
+void io_mux_irq();
 
-
-void benchSetup(){
-  //gpio_set_mode(GPIOB, 14, GPIO_OUTPUT_PP);
-}
-
-void benchStart(){
-  //GPIOB->regs->BSRR = 1<<14;
-}
-
-void benchEnd(){
-  //GPIOB->regs->BSRR = (1<<14)<<16;
-}
+void benchSetup();
+void benchStart();
+void benchEnd();

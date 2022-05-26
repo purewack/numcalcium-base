@@ -24,7 +24,6 @@ void io_mux_init(){
 
   gpio_set_mode(GPIOA, 8, GPIO_INPUT_PD);
 
-  io.itr = 0;
   io.mux_timer = TIMER3;
   timer_pause(io.mux_timer);
 
@@ -38,51 +37,51 @@ void io_mux_init(){
 
 void io_mux_irq(){
 
-  if(kmux.op == 0){
-    gpio_write_bit(kmux.row < 2 ? GPIOA : GPIOB, kmux.seq_row[kmux.row], 1);
-    kmux.op = 1;
+  if(io.op == 0){
+    gpio_write_bit(io.row < 2 ? GPIOA : GPIOB, io.seq_row[io.row], 1);
+    io.op = 1;
     return;
   }
 
-  else if(kmux.op == 1){
+  else if(io.op == 1){
     auto a = GPIOB->regs->IDR;
-    gpio_write_bit(kmux.row < 2 ? GPIOA : GPIOB, kmux.seq_row[kmux.row], 0);
+    gpio_write_bit(io.row < 2 ? GPIOA : GPIOB, io.seq_row[io.row], 0);
 
     auto readbyte = ((a&0xc00)>>8) | (a&0x3);
-    kmux.bstate_old = kmux.bstate;
-    kmux.bstate &= ~(0xf<<(kmux.row*4));
-    kmux.bstate |= (readbyte<<(kmux.row*4));
-    kmux.bscan_down |= (kmux.bstate & (~kmux.bstate_old));
-    kmux.bscan_up |= (kmux.bstate_old & (~kmux.bstate));
+    io.bstate_old = io.bstate;
+    io.bstate &= ~(0xf<<(io.row*4));
+    io.bstate |= (readbyte<<(io.row*4));
+    io.bscan_down |= (io.bstate & (~io.bstate_old));
+    io.bscan_up |= (io.bstate_old & (~io.bstate));
     
-    kmux.row = (kmux.row+1)%5;
-    kmux.op = 2;
+    io.row = (io.row+1)%5;
+    io.op = 2;
     return;
   }
   
-  else if(kmux.op == 2){
+  else if(io.op == 2){
     gpio_write_bit(GPIOB, 9, 1);
-    kmux.ok = gpio_read_bit(GPIOA, 8);
-    kmux.op = 3;
+    io.ok = gpio_read_bit(GPIOA, 8);
+    io.op = 3;
     return;
   }
 
-  kmux.op = 0;
+  io.op = 0;
   // auto a = GPIOB->regs->IDR;
-  // kmux.io[20].state = (a&(1<<11))>>11;
-  // kmux.io[21].state = (a&(1<<10))>>10;
+  // io.io[20].state = (a&(1<<11))>>11;
+  // io.io[21].state = (a&(1<<10))>>10;
   // gpio_write_bit(GPIOB, 9, 0);
 
-  // kmux.turns_state = (kmux.io[20].state<<0) | (kmux.io[21].state<<1) | (kmux.io[20].state_old<<2) | (kmux.io[21].state_old<<3);
-  // kmux.io[20].state_old = kmux.io[20].state;
-  // kmux.io[21].state_old = kmux.io[21].state;
+  // io.turns_state = (io.io[20].state<<0) | (io.io[21].state<<1) | (io.io[20].state_old<<2) | (io.io[21].state_old<<3);
+  // io.io[20].state_old = io.io[20].state;
+  // io.io[21].state_old = io.io[21].state;
 
-  // if(kmux.turns_state == 0b0001){
-  //   if(kmux.turns < 0) kmux.turns = 0;
-  //   kmux.turns++;
+  // if(io.turns_state == 0b0001){
+  //   if(io.turns < 0) io.turns = 0;
+  //   io.turns++;
   // }
-  // else if(kmux.turns_state == 0b1101){
-  //   if(kmux.turns > 0) kmux.turns = 0;
-  //   kmux.turns--;
+  // else if(io.turns_state == 0b1101){
+  //   if(io.turns > 0) io.turns = 0;
+  //   io.turns--;
   // }
 }
