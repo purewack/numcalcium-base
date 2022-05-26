@@ -6,9 +6,30 @@
 #include "boards.h"
 #include "io.h"
 
+//conflicting miso pin being pinmoded to input after ::sendBuffer()
+U8G2_ST7565_ERC12864_ALT_F_4W_SW_SPI hud(U8G2_R0, /* clock=*/ LCD_CK, /* data=*/ LCD_MOSI, /* cs=*/ LCD_CS, /* dc=*/ LCD_DC, /* reset=*/ LCD_RST);
+//U8G2_ST7565_ERC12864_ALT_F_4W_SW_SPI u8g2(U8G2_R0, /* cs=*/ LCD_CS, /* dc=*/ LCD_DC, /* reset=*/ LCD_RST);
+
 hw_t io;
 soft_i2s_t i2s;
 audio_buf_t abuf;
+
+void base_init(){
+  disableDebugPorts();
+  gpio_set_mode(GPIOB,5,GPIO_OUTPUT_PP);
+  gpio_write_bit(GPIOB,5,0);
+  
+  gpio_set_mode(GPIOA,6,GPIO_AF_OUTPUT_PP);
+
+  hud.begin();
+  hud.setContrast(82);
+  hud.setFlipMode(1);
+}
+
+void sys_power_down(){
+  gpio_set_mode(GPIOB,5,GPIO_OUTPUT_PP);
+  gpio_write_bit(GPIOB,5,1);
+}
 
 void io_mux_init(){
   if(io.inited) return;
@@ -31,6 +52,8 @@ void io_mux_init(){
   //48M / 48 / 2000 = 25hz*20keys
   timer_set_prescaler(TIMER3, 48);
   timer_set_reload(TIMER3, 1000);
+  timer_set_compare(TIMER3, TIMER_CH1, 0);
+  timer_cc_enable(TIMER3, TIMER_CH1);
   timer_attach_interrupt(TIMER3, TIMER_UPDATE_INTERRUPT, io_mux_irq);
   timer_enable_irq(TIMER3, TIMER_UPDATE_INTERRUPT);
   timer_resume(TIMER3);
@@ -41,6 +64,10 @@ void io_mux_irq(){
   if(io.op == 0){
     gpio_write_bit(io.row < 2 ? GPIOA : GPIOB, io.seq_row[io.row], 1);
     io.op = 1;
+    io.lcd_fade_shadow += io.lcd_fade;
+    if(io.lcd_fade_shadow <= 0) io.lcd_fade = 0;
+    if(io.lcd_fade_shadow <= io.lcd_low) io.lcd_fade = 0;
+    if(io.lcd_fade_shadow >= io.lcd_hi) io.lcd_fade = 0;
     return;
   }
 
@@ -64,6 +91,7 @@ void io_mux_irq(){
     gpio_write_bit(GPIOB, 9, 1);
     io.ok = gpio_read_bit(GPIOA, 8);
     io.op = 3;
+    timer_set_compare(TIMER3, TIMER_CH1, io.lcd_fade_shadow);
     return;
   }
 

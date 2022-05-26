@@ -1,4 +1,41 @@
+
+#include <U8g2lib.h>
+
 #pragma once
+
+#define SYS_PDOWN PB5
+
+#define LCD_LIGHT PA6
+#define LCD_CS PA4
+#define LCD_DC PA3
+#define LCD_CK PA5
+#define LCD_RST PA2
+#define LCD_MOSI PA7
+
+#define SEG_A PB11
+#define SEG_B PB10
+#define SEG_C PB1
+#define SEG_D PB0
+
+#define ROW_A PA14
+#define ROW_B PA15
+#define ROW_C PB3
+#define ROW_D PB4
+#define ROW_E PB8
+#define ROW_F PB9
+
+#define B_OK PA8
+
+#define GP_A PA0
+#define GP_B PA1
+#define COMMS_SDA PB7
+#define COMMS_SDL PB6
+#define COMMS_MOSI PB15
+#define COMMS_MISO PB14
+#define COMMS_CK   PB13
+#define COMMS_CS PB12
+#define COMMS_RX PA10
+#define COMMS_TX PA9
 
 #define K_Y 0
 #define K_0 1
@@ -21,6 +58,7 @@
 #define K_F3 18
 #define K_X 19
 
+extern U8G2_ST7565_ERC12864_ALT_F_4W_SW_SPI hud;
 struct hw_t
 {
   #define S_BIT(n,b) n |= (1<<(b))
@@ -39,6 +77,10 @@ struct hw_t
   uint8_t row;
   uint8_t op;
   uint8_t inited = 0;
+  int lcd_fade = 0;
+  int lcd_fade_shadow = 0;
+  int lcd_low = 0;
+  int lcd_hi = 999;
 };
 
 struct audio_buf_t {
@@ -52,9 +94,14 @@ struct soft_i2s_t{
   uint8_t inited = 0;
 };
 
+extern hw_t io;
+extern soft_i2s_t i2s;
+extern audio_buf_t abuf;
 // struct pwm_dac_t{
 //   uint8_t inited = 0;
 // };
+
+void base_init();
 
 void io_mux_init();
 void io_mux_irq();
