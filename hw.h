@@ -1,6 +1,3 @@
-
-#include <U8g2lib.h>
-
 #pragma once
 
 #define SYS_PDOWN PB5
@@ -58,7 +55,10 @@
 #define K_F3 18
 #define K_X 19
 
-extern U8G2_ST7565_ERC12864_ALT_F_4W_SW_SPI hud;
+struct lcd_t {
+  uint64_t fbuf[128]; // 128 vertical columns
+};
+
 struct hw_t
 {
   #define S_BIT(n,b) n |= (1<<(b))
@@ -97,6 +97,7 @@ struct soft_i2s_t{
 extern hw_t io;
 extern soft_i2s_t i2s;
 extern audio_buf_t abuf;
+extern lcd_t lcd;
 // struct pwm_dac_t{
 //   uint8_t inited = 0;
 // };
@@ -113,6 +114,13 @@ void soft_i2s_bits_irq();
 void pwm_audio_init();
 void pwm_audio_deinit();
 void pwm_audio_irq();
+
+void lcd_init();
+void lcd_clear();
+void lcd_update();
+void lcd_drawHline(int x, int y, int w);
+void lcd_drawVline(int x, int y, int h);
+void lcd_drawRect(int x, int y, int x2, int y2);
 
 void benchSetup();
 void benchStart();

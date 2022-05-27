@@ -6,10 +6,6 @@
 #include "boards.h"
 #include "io.h"
 
-//conflicting miso pin being pinmoded to input after ::sendBuffer()
-U8G2_ST7565_ERC12864_ALT_F_4W_SW_SPI hud(U8G2_R0, /* clock=*/ LCD_CK, /* data=*/ LCD_MOSI, /* cs=*/ LCD_CS, /* dc=*/ LCD_DC, /* reset=*/ LCD_RST);
-//U8G2_ST7565_ERC12864_ALT_F_4W_SW_SPI u8g2(U8G2_R0, /* cs=*/ LCD_CS, /* dc=*/ LCD_DC, /* reset=*/ LCD_RST);
-
 hw_t io;
 soft_i2s_t i2s;
 audio_buf_t abuf;
@@ -21,9 +17,7 @@ void base_init(){
   
   gpio_set_mode(GPIOA,6,GPIO_AF_OUTPUT_PP);
 
-  hud.begin();
-  hud.setContrast(82);
-  hud.setFlipMode(1);
+  lcd_init();
 }
 
 void sys_power_down(){
@@ -215,3 +209,25 @@ void soft_i2s_bits_irq(){
 // void pwm_audio_irq(){
 
 // }
+
+void lcd_init(){
+
+}
+
+void lcd_update(){
+  
+}
+
+void lcd_clear(){
+  for(int i=0; i<128; i++){
+    lcd.fbuf[i] = 0;
+  }
+}
+void lcd_drawHline(int x, int y, int w){
+  for(int i=x; i<x+w; i++){
+    lcd.fbuf[i] |= (1<<(y));
+  }
+}
+void lcd_drawVline(int x, int y, int h){
+  lcd.fbuf[x] |= (((1<<h)-1)<<y);
+}

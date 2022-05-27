@@ -7,6 +7,7 @@ void setup(){
     io.lcd_fade = 5;
 }
 
+int d = 0;
 void loop(){
     if(io.bscan_down){
         if(io.bscan_down & BUTTON(K_F1)) io.lcd_fade = 3;
@@ -14,4 +15,9 @@ void loop(){
         Serial.println(io.bscan_down);
         io.bscan_down = 0;
     }
+
+    d = (d+1)%40;
+    lcd_clear();
+    lcd_drawRect(5,5,d,d);
+    lcd_update();
 }
