@@ -63,7 +63,8 @@
 #include "io.h"
 
 struct lcd_t {
-  uint64_t fbuf[128]; // 128 vertical columns
+  uint32_t fbuf_top[128]; // 128 vertical columns
+  uint32_t fbuf_bot[128]; // 128 vertical columns
 };
 
 struct hw_t
@@ -127,7 +128,8 @@ void lcd_clear();
 void lcd_update();
 void lcd_drawHline(int x, int y, int w);
 void lcd_drawVline(int x, int y, int h);
-void lcd_drawRect(int x, int y, int x2, int y2);
+void lcd_drawRectPoint(int x, int y, int x2, int y2);
+void lcd_drawRectSize(int x, int y, int w, int h);
 
 void benchSetup();
 void benchStart();

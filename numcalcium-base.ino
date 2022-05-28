@@ -5,14 +5,8 @@ void setup(){
     base_init();
     io_mux_init();
     io.lcd_fade = 5;
+
     lcd_init();
-    lcd_clear();
-    lcd_update();
-    lcd_drawVline(0,0,16);
-    lcd_drawHline(0,0,16);
-    lcd_drawVline(5,16,16);
-    lcd_update();
-    Serial.println("done");
 }
 
 int d = 0;
@@ -24,8 +18,10 @@ void loop(){
         io.bscan_down = 0;
     }
 
-//     d = (d+1)%40;
-//     lcd_clear();
-//     lcd_drawRect(5,5,d,d);
-//     lcd_update();
+    d = (d+1)%40;
+    lcd_clear();
+    lcd_drawRectSize(5,5,d,d);
+    lcd_update();
+
+    delay(10);
 }

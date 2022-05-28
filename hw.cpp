@@ -209,7 +209,7 @@ void lcd_init(){
     SPI.begin();
     SPI.setBitOrder(MSBFIRST); // Set the SPI_1 bit order
     SPI.setDataMode(SPI_MODE0); //Set the  SPI_2 data mode 0
-    SPI.setClockDivider(SPI_CLOCK_DIV32);      // Slow speed (72 / 16 = 4.5 MHz SPI_1 speed)
+    SPI.setClockDivider(SPI_CLOCK_DIV8);      // Slow speed (72 / 16 = 4.5 MHz SPI_1 speed)
 
     pinMode(LCD_CS, OUTPUT);
     pinMode(LCD_RST, OUTPUT);
@@ -248,7 +248,6 @@ void lcd_init(){
     SPI.transfer(0x0af);                    /* display off */
     
     SPI.transfer(0b01000000); //line 0
-    //SPI.transfer(0x0a5);                    /* enter powersafe: all pixel on, issue 142 */
     digitalWrite(LCD_CS, 1);
     
 delay(100);
@@ -265,27 +264,60 @@ void lcd_update(){
     SPI.transfer(0b00010000); //col high bit
     digitalWrite(LCD_CS, 1);
     delay(1);
+
+    int pp = (p%4)*8;
+    uint32_t* buf = p < 4 ? lcd.fbuf_top : lcd.fbuf_bot;
+
     digitalWrite(LCD_DC, 1);
     digitalWrite(LCD_CS, 0);
-
-    int pp = p*8;
     for(int d=0; d<128; d++){
-      SPI.transfer( (lcd.fbuf[d]&(0xff<<pp))>>pp );
+      //SPI.transfer(0b01010101 << (d%2)); //checkered
+      uint32_t dd = buf[d];
+      dd &= (0xff<<pp);
+      SPI.transfer( uint8_t(dd>>pp) );
     }
-    digitalWrite(LCD_CS, 1);  
+    digitalWrite(LCD_CS, 1); 
+    delay(1);
   }
 }
 
 void lcd_clear(){
   for(int i=0; i<128; i++){
-    lcd.fbuf[i] = 0;
+    lcd.fbuf_top[i] = 0;
+    lcd.fbuf_bot[i] = 0;
   }
 }
 void lcd_drawHline(int x, int y, int w){
   for(int i=x; i<x+w; i++){
-    lcd.fbuf[i] |= (1<<(y));
+    if(y<32)
+      lcd.fbuf_top[i] |= (1<<y);
+    else
+      lcd.fbuf_bot[i] |= (1<<(y-32));
   }
 }
 void lcd_drawVline(int x, int y, int h){
-  lcd.fbuf[x] |= (((1<<h)-1)<<y);
+  int e = y+h > 64 ? 64 : y+h;
+  for(int i=y; i<e; i++){
+    if(i<32)
+      lcd.fbuf_top[x] |= (1<<(i));
+    else
+      lcd.fbuf_bot[x] |= (1<<(i-32));
+  }
+}
+
+// void lcd_draw_rect_base(int x, int y, int w, int h, int fill){
+//   lcd.fbuf[x] |= (((1<<h)-1)<<y);
+//   int ff = fill ? ((1<<h)-1) : ((1<<(h-1)) | 1);
+//   ff <<= y;
+//   for(int i=x+1; i<x+w-1; i++){
+//     lcd.fbuf[i] |= ff;
+//   }
+//   lcd.fbuf[x+w-1] |= (((1<<h)-1)<<y);
+// }
+void lcd_drawRectSize(int x, int y, int w, int h){
+  //lcd_draw_rect_base(x,y,w,h,0);
+  lcd_drawHline(x,y,w);
+  lcd_drawVline(x,y,h);
+  lcd_drawHline(x,y+h-1,w);
+  lcd_drawVline(x+w-1,y,h);
 }
