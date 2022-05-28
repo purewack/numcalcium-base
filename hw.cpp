@@ -1,14 +1,11 @@
 #include "hw.h"
-#include <libmaple/libmaple_types.h>
-#include <libmaple/timer.h>
-#include <libmaple/dma.h>
-#include <libmaple/gpio.h>
-#include "boards.h"
-#include "io.h"
+
+#include <SPI.h>
 
 hw_t io;
 soft_i2s_t i2s;
 audio_buf_t abuf;
+lcd_t lcd;
 
 void base_init(){
   disableDebugPorts();
@@ -16,8 +13,6 @@ void base_init(){
   gpio_write_bit(GPIOB,5,0);
   
   gpio_set_mode(GPIOA,6,GPIO_AF_OUTPUT_PP);
-
-  lcd_init();
 }
 
 void sys_power_down(){
@@ -211,11 +206,74 @@ void soft_i2s_bits_irq(){
 // }
 
 void lcd_init(){
+    SPI.begin();
+    SPI.setBitOrder(MSBFIRST); // Set the SPI_1 bit order
+    SPI.setDataMode(SPI_MODE0); //Set the  SPI_2 data mode 0
+    SPI.setClockDivider(SPI_CLOCK_DIV32);      // Slow speed (72 / 16 = 4.5 MHz SPI_1 speed)
+
+    pinMode(LCD_CS, OUTPUT);
+    pinMode(LCD_RST, OUTPUT);
+    pinMode(LCD_DC, OUTPUT);
+    digitalWrite(LCD_CS, 1);
+    digitalWrite(LCD_RST, 1);
+    delay(1);
+    digitalWrite(LCD_RST, 0);
+    delay(1);
+    digitalWrite(LCD_RST, 1);
+    delay(100);
+ 
+    //init
+    digitalWrite(LCD_DC, 0);
+    digitalWrite(LCD_CS, 0);
+    
+    SPI.transfer(0x0e2);                 /* soft reset */
+    SPI.transfer(0x0ae);                    /* display off */
+    SPI.transfer(0x040);                    /* set display start line to ... */
+    
+    SPI.transfer(0x0a1);                    /* ADC set to reverse */
+    SPI.transfer(0x0c0);                    /* common output mode */
+    
+    SPI.transfer(0x0a6);                    /* display normal, bit val 0: LCD pixel off. */
+    SPI.transfer(0x0a2);                    /* LCD bias 1/9 - *** Changed by Ismail - was 0xa3 - 1/7 bias we were getting dark pixel off */
+    SPI.transfer(0x02f);                    /* all power  control circuits on (regulator, booster and follower) */
+    
+    SPI.transfer(0x0f8);
+    SPI.transfer(0x000);    /* set booster ratio to 4x (ST7567 feature)*/
+    
+    SPI.transfer(0x027);                    /* set V0 voltage resistor ratio to max  */
+    
+    SPI.transfer(0x081);
+    SPI.transfer(85);          /* set contrast, contrast value, EA default: 0x016 - *** Changed by Ismail to 0x05 */ 
+    
+    SPI.transfer(0x0af);                    /* display off */
+    
+    SPI.transfer(0b01000000); //line 0
+    //SPI.transfer(0x0a5);                    /* enter powersafe: all pixel on, issue 142 */
+    digitalWrite(LCD_CS, 1);
+    
+delay(100);
 
 }
 
 void lcd_update(){
-  
+  for(int p=0; p<8; p++){ 
+    //page - col addy
+    digitalWrite(LCD_DC, 0);
+    digitalWrite(LCD_CS, 0);
+    SPI.transfer(0b10110000 | p); //page
+    SPI.transfer(0b00000100); //col 4
+    SPI.transfer(0b00010000); //col high bit
+    digitalWrite(LCD_CS, 1);
+    delay(1);
+    digitalWrite(LCD_DC, 1);
+    digitalWrite(LCD_CS, 0);
+
+    int pp = p*8;
+    for(int d=0; d<128; d++){
+      SPI.transfer( (lcd.fbuf[d]&(0xff<<pp))>>pp );
+    }
+    digitalWrite(LCD_CS, 1);  
+  }
 }
 
 void lcd_clear(){

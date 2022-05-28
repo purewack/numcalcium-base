@@ -55,6 +55,13 @@
 #define K_F3 18
 #define K_X 19
 
+#include <libmaple/libmaple_types.h>
+#include <libmaple/timer.h>
+#include <libmaple/dma.h>
+#include <libmaple/gpio.h>
+#include "boards.h"
+#include "io.h"
+
 struct lcd_t {
   uint64_t fbuf[128]; // 128 vertical columns
 };
