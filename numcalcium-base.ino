@@ -6,11 +6,10 @@ void setup(){
     lcd_fade(1);
     lcd_clear();
 
-    lcd_drawLine(0,0,15,13);
-    lcd_drawCharSmall(16,23,0);
-    lcd_drawCharSmall(32,24,0);
-    lcd_drawCharSmall(48,31,0);
-    lcd_drawCharSmall(64,32,0);
+    lcd_drawRectSize(0,0,40,40);
+    lcd_drawLine(20,20,40,30);
+    lcd_drawLine(20,20,22,40);
+    lcd_drawLine(20,20,40,40);
 
     lcd_update();
 }
@@ -24,8 +23,8 @@ void loop(){
 
     // d = (d+1)%40;
     // lcd_clear();
-    // lcd_drawRectSize(5,5,d,d);
+    // lcd_drawLine(5,15,5+d*2,15+d);
     // lcd_update();
 
-    delay(20);
+    // delay(100);
 }

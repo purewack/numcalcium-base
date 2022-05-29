@@ -298,7 +298,32 @@ void lcd_drawVline(int x, int y, int h){
   }
 }
 void lcd_drawLine(int x, int y, int x2, int y2){
-  
+  const int dy = (y2-y);
+  const int dx = (x2-x);
+
+  if(dx == 0){
+    lcd_drawVline(x,y,dy);
+    return;
+  }
+  if(dy == 0){
+    lcd_drawHline(x,y,dx);
+    return;
+  }
+
+  if(dx > dy){
+    for(int i=x; i<x+dx; i++){
+        int pp = (i*dy)/dx;
+        pp -= dy-y;
+        lcd_drawHline(i,pp,1);
+    }
+  }
+  else{
+    for(int i=y; i<y+dy; i++){
+        int pp = (i*dx)/dy;
+        pp -= dx-x;
+        lcd_drawHline(pp,i,1);
+    }
+  }
 }
 
 // void lcd_draw_rect_base(int x, int y, int w, int h, int fill){
