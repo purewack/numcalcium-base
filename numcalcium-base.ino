@@ -6,7 +6,7 @@ void setup(){
     lcd_fade(1);
     lcd_clear();
 
-    lcd_drawCharSmall(0,0,0);
+    lcd_drawLine(0,0,15,13);
     lcd_drawCharSmall(16,23,0);
     lcd_drawCharSmall(32,24,0);
     lcd_drawCharSmall(48,31,0);

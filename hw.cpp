@@ -297,6 +297,9 @@ void lcd_drawVline(int x, int y, int h){
       lcd.fbuf_bot[x] |= (1<<(i-32));
   }
 }
+void lcd_drawLine(int x, int y, int x2, int y2){
+  
+}
 
 // void lcd_draw_rect_base(int x, int y, int w, int h, int fill){
 //   lcd.fbuf[x] |= (((1<<h)-1)<<y);

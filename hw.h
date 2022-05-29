@@ -164,6 +164,7 @@ void lcd_clear();
 void lcd_update();
 void lcd_drawHline(int x, int y, int w);
 void lcd_drawVline(int x, int y, int h);
+void lcd_drawLine(int x, int y, int x2, int y2);
 void lcd_drawRectPoint(int x, int y, int x2, int y2);
 void lcd_drawRectSize(int x, int y, int w, int h);
 void lcd_drawCharSmall(int x, int y, int g);
