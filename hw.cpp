@@ -12,10 +12,8 @@ void base_init(){
   
   lcd_init();
   io_mux_init();
-  gpio_set_mode(GPIOA,6,GPIO_OUTPUT_PP);
-  gpio_write_bit(GPIOA,6,1);
-  io.lcd_fade = 5;
-
+  lcd_clear();
+  lcd_update();
 }
 
 void base_deinit(){
@@ -43,7 +41,6 @@ void io_mux_init(){
   timer_set_prescaler(TIMER3, 48);
   timer_set_reload(TIMER3, 1000);
   timer_set_compare(TIMER3, TIMER_CH1, 0);
-  timer_cc_enable(TIMER3, TIMER_CH1);
   timer_attach_interrupt(TIMER3, TIMER_UPDATE_INTERRUPT, io_mux_irq);
   timer_enable_irq(TIMER3, TIMER_UPDATE_INTERRUPT);
   timer_resume(TIMER3);
@@ -54,16 +51,6 @@ void io_mux_irq(){
   if(io.op == 0){
     gpio_write_bit(io.row < 2 ? GPIOA : GPIOB, io.seq_row[io.row], 1);
     io.op = 1;
-    io.lcd_fade_shadow += io.lcd_fade;
-    if(io.lcd_fade_shadow <= io.lcd_low)  {
-      io.lcd_fade = 0;
-      io.lcd_fade_shadow = io.lcd_low;
-    }
-    if(io.lcd_fade_shadow >= io.lcd_hi-1) {
-      io.lcd_fade = 0;
-      io.lcd_fade_shadow = io.lcd_hi;
-    }
-    timer_set_compare(TIMER3, TIMER_CH1, io.lcd_fade_shadow);
     return;
   }
 
@@ -206,46 +193,65 @@ void soft_i2s_bits_irq(){
 
 // }
 
+void lcd_fade(int in){
+  gpio_set_mode(GPIOA, LCD_LIGHT_PWM, GPIO_OUTPUT_PP); 
+  gpio_write_bit(GPIOA, LCD_LIGHT_PWM, 0);
+  for(int i=500; i<1000; i++){ 
+    delay_us(1000-i);
+    gpio_write_bit(GPIOA, LCD_LIGHT_PWM, in);
+    delay_us(i);
+    gpio_write_bit(GPIOA, LCD_LIGHT_PWM, !in);
+  }
+  gpio_write_bit(GPIOA, LCD_LIGHT_PWM, 1);
+}
+
 void lcd_init(){
-    spi_init(SPI1);
-    spi_master_enable(SPI1, 
-      SPI_BAUD_PCLK_DIV_32, 
-      SPI_MODE_0, 
-      SPI_FRAME_MSB | SPI_DFF_8_BIT | SPI_SW_SLAVE | SPI_SOFT_SS 
-    );
+  if(lcd.inited) return;
+  lcd.inited = 1;
+  lcd.transferring = 1;
 
-    gpio_set_mode(GPIOA, SPI_MOSI, GPIO_AF_OUTPUT_PP); //LCD_MOSI
-    gpio_set_mode(GPIOA, SPI_CLOCK, GPIO_AF_OUTPUT_PP); //LCD_CLOCK
-    gpio_set_mode(GPIOA, SPI_CS, GPIO_OUTPUT_PP); //LCD_CS
-    gpio_set_mode(GPIOA, SPI_RST, GPIO_OUTPUT_PP); //LCD_RST
-    gpio_set_mode(GPIOA, SPI_DC, GPIO_OUTPUT_PP); //LCD_DC
-    
-    gpio_write_bit(GPIOA, SPI_CS, 1);
-    gpio_write_bit(GPIOA, SPI_RST, 1);
-    delay_us(100000);
-    gpio_write_bit(GPIOA, SPI_RST, 0);
-    delay_us(100000);
-    gpio_write_bit(GPIOA, SPI_RST, 1);
-    delay_us(1000000);
- 
-    //init
-    gpio_write_bit(GPIOA, SPI_DC, 0);
-    gpio_write_bit(GPIOA, SPI_CS, 0);
-    
-    spi_tx(SPI1, lcd.init_seq, lcd.init_seq_len);
-    while(spi_is_busy(SPI1));
-    
-    gpio_write_bit(GPIOA, SPI_CS, 1);
+  spi_init(SPI1);
+  spi_master_enable(SPI1, 
+    SPI_BAUD_PCLK_DIV_32, 
+    SPI_MODE_0, 
+    SPI_FRAME_MSB | SPI_DFF_8_BIT | SPI_SW_SLAVE | SPI_SOFT_SS 
+  );
 
+  gpio_set_mode(GPIOA, SPI_MOSI, GPIO_AF_OUTPUT_PP); //LCD_MOSI
+  gpio_set_mode(GPIOA, SPI_CLOCK, GPIO_AF_OUTPUT_PP); //LCD_CLOCK
+  gpio_set_mode(GPIOA, SPI_CS, GPIO_OUTPUT_PP); //LCD_CS
+  gpio_set_mode(GPIOA, SPI_RST, GPIO_OUTPUT_PP); //LCD_RST
+  gpio_set_mode(GPIOA, SPI_DC, GPIO_OUTPUT_PP); //LCD_DC
+
+  gpio_write_bit(GPIOA, SPI_CS, 1);
+  gpio_write_bit(GPIOA, SPI_RST, 1);
+  delay_us(100000);
+  gpio_write_bit(GPIOA, SPI_RST, 0);
+  delay_us(100000);
+  gpio_write_bit(GPIOA, SPI_RST, 1);
+  delay_us(1000000);
+
+  //init
+  gpio_write_bit(GPIOA, SPI_DC, 0);
+  gpio_write_bit(GPIOA, SPI_CS, 0);
+  
+  spi_tx(SPI1, lcd.init_seq, lcd.init_seq_len);
+  while(spi_is_busy(SPI1));
+  
+  gpio_write_bit(GPIOA, SPI_CS, 1);
+  
+  lcd.transferring = 0;
 }
 
 void lcd_update(){
+  if(!spi_is_enabled(SPI1)) return;
+  lcd.transferring = 1;
   for(int p=0; p<8; p++){ 
     //page - col addy
     gpio_write_bit(GPIOA, SPI_DC, 0);
     gpio_write_bit(GPIOA, SPI_CS, 0);
-    lcd.update_seq[0] = 0b10110000 | p;
-    spi_tx(SPI1, lcd.update_seq, 3);
+    lcd.data_seq[0] = 0b10110000 | p;
+    spi_tx(SPI1, lcd.data_seq, 3);
     while(spi_is_busy(SPI1));
     gpio_write_bit(GPIOA, SPI_CS, 1);
 
@@ -265,6 +271,7 @@ void lcd_update(){
     gpio_write_bit(GPIOA, SPI_CS, 1);
     delay_us(1);
   }
+  lcd.transferring = 0;
 }
 
 void lcd_clear(){

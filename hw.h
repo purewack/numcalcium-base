@@ -73,32 +73,35 @@
 #include "io.h"
 
 struct lcd_t {
+  int inited = 0;
+  volatile int transferring = 0;
+
   uint32_t fbuf_top[128]; // 128 vertical columns
   uint32_t fbuf_bot[128]; // 128 vertical columns
   
-  const uint8_t init_seq[15] = {
-    0xe2,                 /* soft reset */
+  const uint8_t init_seq[14] = {
+    0xe2,                    /* soft reset */
     0xae,                    /* display off */
-    0x40,                    /* set display start line to ... */
+    0x40,                    /* display start line 0 */
     0xa1,                    /* ADC set to reverse */
     0xc0,                    /* common output mode */
     0xa6,                    /* display normal, bit val 0: LCD pixel off. */
-    0xa2,                    /* LCD bias 1/9 - *** Changed by Ismail - was 0xa3 - 1/7 bias we were getting dark pixel off */
-    0x2f,                    /* all power  control circuits on (regulator, booster and follower) */
+    0xa2,                    /* LCD bias 1/9 */
+    0x2f,                    /* all power */
     0xf8,
-    0x00,    /* set booster ratio to 4x (ST7567 feature)*/
+    0x00,    /* set booster ratio to 4x */
     0x27,                    /* set V0 voltage resistor ratio to max  */
     0x81,
-    0x55,       /* set contrast, contrast value, EA default: 0x016 - *** Changed by Ismail to 0x05 */ 
-    0xaf,                    /* display off */
-    0x40 //line 0
+    0x55,       /* set contrast, contrast value, 80/127 */ 
+    0xaf,                    /* display on */
   };
-  const uint8_t init_seq_len = 15;
-  uint8_t update_seq[3] = {
+  const uint8_t init_seq_len = 14;
+  uint8_t data_seq[3] = {
     0,
     0x04,
     0x10
   };
+
 };
 
 struct hw_t
@@ -119,10 +122,6 @@ struct hw_t
   uint8_t row;
   uint8_t op;
   uint8_t inited = 0;
-  int lcd_fade = 0;
-  int lcd_fade_shadow = 0;
-  int lcd_low = 0;
-  int lcd_hi = 999;
 };
 
 struct audio_buf_t {
@@ -165,6 +164,8 @@ void lcd_drawHline(int x, int y, int w);
 void lcd_drawVline(int x, int y, int h);
 void lcd_drawRectPoint(int x, int y, int x2, int y2);
 void lcd_drawRectSize(int x, int y, int w, int h);
+
+void lcd_fade(int in);
 
 void benchSetup();
 void benchStart();
