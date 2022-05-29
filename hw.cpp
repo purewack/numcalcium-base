@@ -314,3 +314,38 @@ void lcd_drawRectSize(int x, int y, int w, int h){
   lcd_drawHline(x,y+h-1,w);
   lcd_drawVline(x+w-1,y,h);
 }
+
+void lcd_drawString8x8(int x, int y, const char* str){
+  
+}
+
+void lcd_drawCharSmall(int x, int y, int g){
+
+  g*=8;
+  uint32_t char_byte = 0;
+  uint32_t lo_byte = 0;
+  uint32_t hi_byte = 0;
+  if(y > 32-8 && y < 32){
+    //over boundary of two bufs
+    for(int i=0; i<8; i++){
+      char_byte = font_small_none[i];
+      lcd.fbuf_top[x  ] |= (char_byte << y);
+      lcd.fbuf_bot[x++] |= (char_byte >> (8-(y-24)));
+      if(x==128) return;
+    }
+  }
+  else if(y>=32){
+    y -= 32;
+    for(int i=0; i<8; i++){
+      lcd.fbuf_bot[x++] |= font_small_none[i]<<y;
+      if(x==128) return;
+    }
+  }
+  else{
+    for(int i=0; i<8; i++){
+      lcd.fbuf_top[x++] |= font_small_none[i]<<y;
+      if(x==128) return;
+    }
+  }
+
+}

@@ -72,38 +72,6 @@
 #include "boards.h"
 #include "io.h"
 
-struct lcd_t {
-  int inited = 0;
-  volatile int transferring = 0;
-
-  uint32_t fbuf_top[128]; // 128 vertical columns
-  uint32_t fbuf_bot[128]; // 128 vertical columns
-  
-  const uint8_t init_seq[14] = {
-    0xe2,                    /* soft reset */
-    0xae,                    /* display off */
-    0x40,                    /* display start line 0 */
-    0xa1,                    /* ADC set to reverse */
-    0xc0,                    /* common output mode */
-    0xa6,                    /* display normal, bit val 0: LCD pixel off. */
-    0xa2,                    /* LCD bias 1/9 */
-    0x2f,                    /* all power */
-    0xf8,
-    0x00,    /* set booster ratio to 4x */
-    0x27,                    /* set V0 voltage resistor ratio to max  */
-    0x81,
-    0x55,       /* set contrast, contrast value, 80/127 */ 
-    0xaf,                    /* display on */
-  };
-  const uint8_t init_seq_len = 14;
-  uint8_t data_seq[3] = {
-    0,
-    0x04,
-    0x10
-  };
-
-};
-
 struct hw_t
 {
   #define S_BIT(n,b) n |= (1<<(b))
@@ -135,6 +103,39 @@ struct soft_i2s_t{
   uint8_t inited = 0;
 };
 
+extern uint8_t font_small_none[];
+extern uint8_t font_small[];
+struct lcd_t {
+  int inited = 0;
+  volatile int transferring = 0;
+
+  uint32_t fbuf_top[128]; // 128 vertical columns
+  uint32_t fbuf_bot[128]; // 128 vertical columns
+  
+  const uint8_t init_seq[14] = {
+    0xe2,                    /* soft reset */
+    0xae,                    /* display off */
+    0x40,                    /* display start line 0 */
+    0xa1,                    /* ADC set to reverse */
+    0xc0,                    /* common output mode */
+    0xa6,                    /* display normal, bit val 0: LCD pixel off. */
+    0xa2,                    /* LCD bias 1/9 */
+    0x2f,                    /* all power */
+    0xf8,
+    0x00,    /* set booster ratio to 4x */
+    0x27,                    /* set V0 voltage resistor ratio to max  */
+    0x81,
+    0x52,       /* set contrast, contrast value, 80/127 */ 
+    0xaf,                    /* display on */
+  };
+  const uint8_t init_seq_len = 14;
+  uint8_t data_seq[3] = {
+    0,
+    0x04,
+    0x10
+  };
+};
+
 extern hw_t io;
 extern soft_i2s_t i2s;
 extern audio_buf_t abuf;
@@ -157,6 +158,7 @@ void pwm_audio_init();
 void pwm_audio_deinit();
 void pwm_audio_irq();
 
+void lcd_fade(int in);
 void lcd_init();
 void lcd_clear();
 void lcd_update();
@@ -164,8 +166,7 @@ void lcd_drawHline(int x, int y, int w);
 void lcd_drawVline(int x, int y, int h);
 void lcd_drawRectPoint(int x, int y, int x2, int y2);
 void lcd_drawRectSize(int x, int y, int w, int h);
-
-void lcd_fade(int in);
+void lcd_drawCharSmall(int x, int y, int g);
 
 void benchSetup();
 void benchStart();
