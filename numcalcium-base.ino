@@ -3,10 +3,7 @@
 void setup(){
     Serial.begin(9600);
     base_init();
-    io_mux_init();
-    io.lcd_fade = 5;
-
-    lcd_init();
+    
 }
 
 int d = 0;

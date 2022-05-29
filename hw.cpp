@@ -1,7 +1,5 @@
 #include "hw.h"
 
-#include <SPI.h>
-
 hw_t io;
 soft_i2s_t i2s;
 audio_buf_t abuf;
@@ -9,21 +7,24 @@ lcd_t lcd;
 
 void base_init(){
   disableDebugPorts();
-  gpio_set_mode(GPIOB,5,GPIO_OUTPUT_PP);
   gpio_write_bit(GPIOB,5,0);
+  gpio_set_mode(GPIOB,5,GPIO_OUTPUT_PP);
   
-  gpio_set_mode(GPIOA,6,GPIO_AF_OUTPUT_PP);
+  lcd_init();
+  io_mux_init();
+  gpio_set_mode(GPIOA,6,GPIO_OUTPUT_PP);
+  gpio_write_bit(GPIOA,6,1);
+  io.lcd_fade = 5;
+
 }
 
-void sys_power_down(){
-  gpio_set_mode(GPIOB,5,GPIO_OUTPUT_PP);
+void base_deinit(){
   gpio_write_bit(GPIOB,5,1);
 }
 
 void io_mux_init(){
   if(io.inited) return;
   io.inited = 1;
-  disableDebugPorts();
   gpio_set_mode(GPIOA, 14, GPIO_OUTPUT_PP);
   gpio_set_mode(GPIOA, 15, GPIO_OUTPUT_PP);
   gpio_set_mode(GPIOB, 3, GPIO_OUTPUT_PP);
@@ -62,6 +63,7 @@ void io_mux_irq(){
       io.lcd_fade = 0;
       io.lcd_fade_shadow = io.lcd_hi;
     }
+    timer_set_compare(TIMER3, TIMER_CH1, io.lcd_fade_shadow);
     return;
   }
 
@@ -85,7 +87,6 @@ void io_mux_irq(){
     gpio_write_bit(GPIOB, 9, 1);
     io.ok = gpio_read_bit(GPIOA, 8);
     io.op = 3;
-    timer_set_compare(TIMER3, TIMER_CH1, io.lcd_fade_shadow);
     return;
   }
 
@@ -114,7 +115,7 @@ void soft_i2s_init(){
   i2s.inited = 1;
   abuf.buf_i = 0;
 
-  disableDebugPorts();
+  //disableDebugPorts();
   //timer4ch2 PB7 BCK
   gpio_set_mode(GPIOB, 15, GPIO_OUTPUT_PP);
   gpio_set_mode(GPIOB, 12, GPIO_OUTPUT_PP);
@@ -206,78 +207,63 @@ void soft_i2s_bits_irq(){
 // }
 
 void lcd_init(){
-    SPI.begin();
-    SPI.setBitOrder(MSBFIRST); // Set the SPI_1 bit order
-    SPI.setDataMode(SPI_MODE0); //Set the  SPI_2 data mode 0
-    SPI.setClockDivider(SPI_CLOCK_DIV8);      // Slow speed (72 / 16 = 4.5 MHz SPI_1 speed)
+    spi_init(SPI1);
+    spi_master_enable(SPI1, 
+      SPI_BAUD_PCLK_DIV_32, 
+      SPI_MODE_0, 
+      SPI_FRAME_MSB | SPI_DFF_8_BIT | SPI_SW_SLAVE | SPI_SOFT_SS 
+    );
 
-    pinMode(LCD_CS, OUTPUT);
-    pinMode(LCD_RST, OUTPUT);
-    pinMode(LCD_DC, OUTPUT);
-    digitalWrite(LCD_CS, 1);
-    digitalWrite(LCD_RST, 1);
-    delay(1);
-    digitalWrite(LCD_RST, 0);
-    delay(1);
-    digitalWrite(LCD_RST, 1);
-    delay(100);
+    gpio_set_mode(GPIOA, SPI_MOSI, GPIO_AF_OUTPUT_PP); //LCD_MOSI
+    gpio_set_mode(GPIOA, SPI_CLOCK, GPIO_AF_OUTPUT_PP); //LCD_CLOCK
+    gpio_set_mode(GPIOA, SPI_CS, GPIO_OUTPUT_PP); //LCD_CS
+    gpio_set_mode(GPIOA, SPI_RST, GPIO_OUTPUT_PP); //LCD_RST
+    gpio_set_mode(GPIOA, SPI_DC, GPIO_OUTPUT_PP); //LCD_DC
+    
+    gpio_write_bit(GPIOA, SPI_CS, 1);
+    gpio_write_bit(GPIOA, SPI_RST, 1);
+    delay_us(100000);
+    gpio_write_bit(GPIOA, SPI_RST, 0);
+    delay_us(100000);
+    gpio_write_bit(GPIOA, SPI_RST, 1);
+    delay_us(1000000);
  
     //init
-    digitalWrite(LCD_DC, 0);
-    digitalWrite(LCD_CS, 0);
+    gpio_write_bit(GPIOA, SPI_DC, 0);
+    gpio_write_bit(GPIOA, SPI_CS, 0);
     
-    SPI.transfer(0x0e2);                 /* soft reset */
-    SPI.transfer(0x0ae);                    /* display off */
-    SPI.transfer(0x040);                    /* set display start line to ... */
+    spi_tx(SPI1, lcd.init_seq, lcd.init_seq_len);
+    while(spi_is_busy(SPI1));
     
-    SPI.transfer(0x0a1);                    /* ADC set to reverse */
-    SPI.transfer(0x0c0);                    /* common output mode */
-    
-    SPI.transfer(0x0a6);                    /* display normal, bit val 0: LCD pixel off. */
-    SPI.transfer(0x0a2);                    /* LCD bias 1/9 - *** Changed by Ismail - was 0xa3 - 1/7 bias we were getting dark pixel off */
-    SPI.transfer(0x02f);                    /* all power  control circuits on (regulator, booster and follower) */
-    
-    SPI.transfer(0x0f8);
-    SPI.transfer(0x000);    /* set booster ratio to 4x (ST7567 feature)*/
-    
-    SPI.transfer(0x027);                    /* set V0 voltage resistor ratio to max  */
-    
-    SPI.transfer(0x081);
-    SPI.transfer(85);          /* set contrast, contrast value, EA default: 0x016 - *** Changed by Ismail to 0x05 */ 
-    
-    SPI.transfer(0x0af);                    /* display off */
-    
-    SPI.transfer(0b01000000); //line 0
-    digitalWrite(LCD_CS, 1);
-    
-delay(100);
+    gpio_write_bit(GPIOA, SPI_CS, 1);
 
 }
 
 void lcd_update(){
   for(int p=0; p<8; p++){ 
     //page - col addy
-    digitalWrite(LCD_DC, 0);
-    digitalWrite(LCD_CS, 0);
-    SPI.transfer(0b10110000 | p); //page
-    SPI.transfer(0b00000100); //col 4
-    SPI.transfer(0b00010000); //col high bit
-    digitalWrite(LCD_CS, 1);
-    delay(1);
+    gpio_write_bit(GPIOA, SPI_DC, 0);
+    gpio_write_bit(GPIOA, SPI_CS, 0);
+    lcd.update_seq[0] = 0b10110000 | p;
+    spi_tx(SPI1, lcd.update_seq, 3);
+    while(spi_is_busy(SPI1));
+    gpio_write_bit(GPIOA, SPI_CS, 1);
 
     int pp = (p%4)*8;
     uint32_t* buf = p < 4 ? lcd.fbuf_top : lcd.fbuf_bot;
 
-    digitalWrite(LCD_DC, 1);
-    digitalWrite(LCD_CS, 0);
+    gpio_write_bit(GPIOA, SPI_DC, 1);
+    gpio_write_bit(GPIOA, SPI_CS, 0);
     for(int d=0; d<128; d++){
       //SPI.transfer(0b01010101 << (d%2)); //checkered
       uint32_t dd = buf[d];
       dd &= (0xff<<pp);
-      SPI.transfer( uint8_t(dd>>pp) );
+      dd >>= pp;
+      spi_tx(SPI1, &dd, 1);
+      while(spi_is_busy(SPI1));
     }
-    digitalWrite(LCD_CS, 1); 
-    delay(1);
+    gpio_write_bit(GPIOA, SPI_CS, 1);
+    delay_us(1);
   }
 }
 

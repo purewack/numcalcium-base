@@ -9,6 +9,13 @@
 #define LCD_RST PA2
 #define LCD_MOSI PA7
 
+#define SPI_CS 4
+#define SPI_DC 3
+#define SPI_RST 2
+#define SPI_MOSI 7
+#define SPI_CLOCK 5
+#define LCD_LIGHT_PWM 6
+
 #define SEG_A PB11
 #define SEG_B PB10
 #define SEG_C PB1
@@ -55,16 +62,43 @@
 #define K_F3 18
 #define K_X 19
 
+#include <Arduino.h>
 #include <libmaple/libmaple_types.h>
 #include <libmaple/timer.h>
 #include <libmaple/dma.h>
 #include <libmaple/gpio.h>
+#include <libmaple/spi.h>
+#include <libmaple/delay.h>
 #include "boards.h"
 #include "io.h"
 
 struct lcd_t {
   uint32_t fbuf_top[128]; // 128 vertical columns
   uint32_t fbuf_bot[128]; // 128 vertical columns
+  
+  const uint8_t init_seq[15] = {
+    0xe2,                 /* soft reset */
+    0xae,                    /* display off */
+    0x40,                    /* set display start line to ... */
+    0xa1,                    /* ADC set to reverse */
+    0xc0,                    /* common output mode */
+    0xa6,                    /* display normal, bit val 0: LCD pixel off. */
+    0xa2,                    /* LCD bias 1/9 - *** Changed by Ismail - was 0xa3 - 1/7 bias we were getting dark pixel off */
+    0x2f,                    /* all power  control circuits on (regulator, booster and follower) */
+    0xf8,
+    0x00,    /* set booster ratio to 4x (ST7567 feature)*/
+    0x27,                    /* set V0 voltage resistor ratio to max  */
+    0x81,
+    0x55,       /* set contrast, contrast value, EA default: 0x016 - *** Changed by Ismail to 0x05 */ 
+    0xaf,                    /* display off */
+    0x40 //line 0
+  };
+  const uint8_t init_seq_len = 15;
+  uint8_t update_seq[3] = {
+    0,
+    0x04,
+    0x10
+  };
 };
 
 struct hw_t
@@ -111,6 +145,7 @@ extern lcd_t lcd;
 // };
 
 void base_init();
+void base_deinit();
 
 void io_mux_init();
 void io_mux_irq();
