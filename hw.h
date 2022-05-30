@@ -103,8 +103,6 @@ struct soft_i2s_t{
   uint8_t inited = 0;
 };
 
-extern uint8_t font_small_none[];
-extern uint8_t font_small[];
 struct lcd_t {
   int inited = 0;
   volatile int transferring = 0;
