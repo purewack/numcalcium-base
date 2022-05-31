@@ -282,16 +282,26 @@ void lcd_clear(){
   }
 }
 void lcd_drawHline(int x, int y, int w){
+  if(y<0) return;
+  if(y>63) return;
   for(int i=x; i<x+w; i++){
+    if(i<0) continue;
+    if(i>127) continue;
+    
     if(y<32)
       lcd.fbuf_top[i] |= (1<<y);
     else
       lcd.fbuf_bot[i] |= (1<<(y-32));
   }
 }
-void lcd_drawVline(int x, int y, int h){
+void lcd_drawVline(int x, int y, int h){  
+  if(x<0) return;
+  if(x>127) return;
   int e = y+h > 64 ? 64 : y+h;
   for(int i=y; i<e; i++){
+    if(i<0) continue;
+    if(i>63) continue;
+
     if(i<32)
       lcd.fbuf_top[x] |= (1<<(i));
     else
