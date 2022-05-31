@@ -281,6 +281,25 @@ void lcd_updateSection(int pageoffset, int pagelen, int offset, int len){
   lcd.transferring = 0;
 }
 
+void lcd_clearSection(int yoff, int ylen, int xoff, int xlen){
+  if(yoff > 32){
+    yoff -= 32;
+    int bb = ((1<<ylen)-1);
+    for(int i=xoff; i<xoff+xlen; i++){
+      lcd.fbuf_bot[i] = lcd.fbuf_bot[i] & (~(bb<<(yoff)));
+    }
+  }
+  else{
+    int yy = yoff+ylen;
+    int bt = ((1<<ylen)-1);
+    int bb = yy > 32 ? ((1<<(yy-32))-1) : 0;
+    for(int i=xoff; i<xoff+xlen; i++){
+      lcd.fbuf_top[i] = lcd.fbuf_top[i] & (~(bt<<yoff));
+      lcd.fbuf_bot[i] = lcd.fbuf_bot[i] & (~(bb<<(yoff-32)));
+    }
+  }
+  
+}
 void lcd_clear(){
   for(int i=0; i<128; i++){
     lcd.fbuf_top[i] = 0;
