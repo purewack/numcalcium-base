@@ -213,7 +213,7 @@ void lcd_init(){
 
   spi_init(SPI1);
   spi_master_enable(SPI1, 
-    SPI_BAUD_PCLK_DIV_32, 
+    SPI_BAUD_PCLK_DIV_8, 
     SPI_MODE_0, 
     SPI_FRAME_MSB | SPI_DFF_8_BIT | SPI_SW_SLAVE | SPI_SOFT_SS 
   );
@@ -245,9 +245,13 @@ void lcd_init(){
 }
 
 void lcd_update(){
+  lcd_updateSection(0,8,0,128);
+}
+
+void lcd_updateSection(int pageoffset, int pagelen, int offset, int len){
   if(!spi_is_enabled(SPI1)) return;
   lcd.transferring = 1;
-  for(int p=0; p<8; p++){ 
+  for(int p=pageoffset; p<pageoffset+pagelen; p++){ 
     //page - col addy
     gpio_write_bit(GPIOA, SPI_DC, 0);
     gpio_write_bit(GPIOA, SPI_CS, 0);
@@ -261,7 +265,7 @@ void lcd_update(){
 
     gpio_write_bit(GPIOA, SPI_DC, 1);
     gpio_write_bit(GPIOA, SPI_CS, 0);
-    for(int d=0; d<128; d++){
+    for(int d=offset; d<offset+len; d++){
       //SPI.transfer(0b01010101 << (d%2)); //checkered
       uint32_t dd = buf[d];
       dd &= (0xff<<pp);
@@ -287,7 +291,7 @@ void lcd_drawHline(int x, int y, int w){
   for(int i=x; i<x+w; i++){
     if(i<0) continue;
     if(i>127) continue;
-    
+
     if(y<32)
       lcd.fbuf_top[i] |= (1<<y);
     else

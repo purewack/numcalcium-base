@@ -160,6 +160,7 @@ void lcd_fade(int in);
 void lcd_init();
 void lcd_clear();
 void lcd_update();
+void lcd_updateSection(int pageoffset, int pagelen, int offset, int len);
 void lcd_drawHline(int x, int y, int w);
 void lcd_drawVline(int x, int y, int h);
 void lcd_drawLine(int x, int y, int x2, int y2);
