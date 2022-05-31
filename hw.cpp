@@ -353,36 +353,41 @@ void lcd_drawStringSmall(int x, int y, const char* str){
 }
 
 void lcd_drawCharSmall(int x, int y, char g){
-  uint8_t* ft = fontsmall;
-  if(g < ' ' || g > 127){
+  if(g < ' ' || g > 126){
     g = 0;
-    ft = fontsmall_none;
   }
   else{
-    g-=' ';
+    g-= ' ' + 1;
   }
-  g*=8;
+  
+  uint8_t* ft = fontsmall_data;
+  uint8_t hh = fontsmall_tall;
+  uint8_t ww = fontsmall_wide;
+  
   uint32_t char_byte = 0;
   uint32_t lo_byte = 0;
   uint32_t hi_byte = 0;
-  if(y > 32-8 && y < 32){
+  
+  g*=ww;
+  int hl = 32-hh;
+  if(y > hl && y < 32){
     //over boundary of two bufs
-    for(int i=0; i<8; i++){
+    for(int i=0; i<hh; i++){
       char_byte = ft[i + g];
       lcd.fbuf_top[x  ] |= (char_byte << y);
-      lcd.fbuf_bot[x++] |= (char_byte >> (8-(y-24)));
+      lcd.fbuf_bot[x++] |= (char_byte >> (hh-(y-hl));
       if(x==128) return;
     }
   }
   else if(y>=32){
     y -= 32;
-    for(int i=0; i<8; i++){
+    for(int i=0; i<hh; i++){
       lcd.fbuf_bot[x++] |= ft[i + g]<<y;
       if(x==128) return;
     }
   }
   else{
-    for(int i=0; i<8; i++){
+    for(int i=0; i<hh; i++){
       lcd.fbuf_top[x++] |= ft[i + g]<<y;
       if(x==128) return;
     }

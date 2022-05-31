@@ -1,7 +1,8 @@
 #pragma once 
 
-uint8_t fontsmall_spacing = 8;
-uint8_t fontsmall_none [8] = {
+uint8_t fontsmall_tall = 8;
+uint8_t fontsmall_wide = 8;
+uint8_t fontsmall_data [768] = {
 	0x0,
 	0x7e,
 	0x62,
@@ -9,10 +10,7 @@ uint8_t fontsmall_none [8] = {
 	0x4a,
 	0x46,
 	0x7e,
-	0x0 
-};
-
-uint8_t fontsmall [760] = {
+	0x0,
 	0x0,
 	0x0,
 	0x0,
