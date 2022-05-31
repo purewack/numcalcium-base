@@ -30,8 +30,9 @@ void loop(){
     sprintf(str,"Count %d", d);
 
     d++;
-    lcd_clearSection(32-4,8,4*6,10*6);
-    lcd_drawStringTiny(0,32-4,str);
+    const int xx = 32-4;
+    lcd_clearSection(xx,8,4*6,10*6);
+    lcd_drawStringTiny(0,xx,str);
     lcd_updateSection(3,2,4*6,10*6);
 
     // delay(100);

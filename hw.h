@@ -159,6 +159,7 @@ void pwm_audio_irq();
 void lcd_fade(int in);
 void lcd_init();
 void lcd_clear();
+void lcd_clearSection(int yoff, int ylen, int xoff, int xlen);
 void lcd_update();
 void lcd_updateSection(int pageoffset, int pagelen, int offset, int len);
 void lcd_drawHline(int x, int y, int w);

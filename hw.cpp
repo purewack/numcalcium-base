@@ -295,7 +295,7 @@ void lcd_clearSection(int yoff, int ylen, int xoff, int xlen){
     int bb = yy > 32 ? ((1<<(yy-32))-1) : 0;
     for(int i=xoff; i<xoff+xlen; i++){
       lcd.fbuf_top[i] = lcd.fbuf_top[i] & (~(bt<<yoff));
-      lcd.fbuf_bot[i] = lcd.fbuf_bot[i] & (~(bb<<(yoff-32)));
+      lcd.fbuf_bot[i] = lcd.fbuf_bot[i] & (~bb);
     }
   }
   
@@ -379,6 +379,17 @@ void lcd_drawRectSize(int x, int y, int w, int h){
   lcd_drawVline(x+w-1,y,h);
 }
 
+void lcd_fillRectSize(int x, int y, int w, int h, int pattern){
+  switch (pattern)
+  {
+  case 0: //solid
+
+    break;
+  
+  default:
+    break;
+  }
+}
 
 
 void lcd_drawStringTiny(int x, int y, const char* str){
