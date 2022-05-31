@@ -359,6 +359,7 @@ void lcd_drawRectSize(int x, int y, int w, int h){
 }
 
 
+
 void lcd_drawStringTiny(int x, int y, const char* str){
 	int ii = 0;
 	while(str[ii] != 0){
@@ -401,7 +402,7 @@ void lcd_drawCharTiny(int x, int y, char ch){
     }
   }
   else{
-    for(int i=0; i<hh; i++){
+    for(int i=0; i<ww; i++){
       lcd.fbuf_top[x++] |= ft[i + g]<<y;
       if(x==128) return;
     }
