@@ -15,6 +15,7 @@ void setup(){
     lcd_drawLine(20,20,22,40);
     lcd_drawLine(20,20,40,40);
     lcd_drawStringTiny(16,48,"Hello World !");
+    lcd_fillRectSize(65,5,30,10, 0);
 
     lcd_update();
 }
@@ -31,7 +32,7 @@ void loop(){
 
     d++;
     const int xx = 32-4;
-    lcd_clearSection(xx,8,4*6,10*6);
+    lcd_clearSection(xx,8,4*6,10*6,0);
     lcd_drawStringTiny(0,xx,str);
     lcd_updateSection(3,2,4*6,10*6);
 
