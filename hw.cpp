@@ -1,5 +1,5 @@
 #include "hw.h"
-#include "fontsmall.h"
+#include "fonttiny.h"
 
 hw_t io;
 soft_i2s_t i2s;
@@ -345,43 +345,43 @@ void lcd_drawRectSize(int x, int y, int w, int h){
 }
 
 
-void lcd_drawStringSmall(int x, int y, const char* str){
+void lcd_drawStringTiny(int x, int y, const char* str){
 	int ii = 0;
 	while(str[ii] != 0){
-		lcd_drawCharSmall(x + ii*8, y, str[ii++]);
+		lcd_drawCharTiny(x + ii*fonttiny_wide, y, str[ii++]);
 	}
 }
 
-void lcd_drawCharSmall(int x, int y, char g){
-  if(g < ' ' || g > 126){
-    g = 0;
+void lcd_drawCharTiny(int x, int y, char ch){
+  if(ch < ' ' || ch > 126){
+    ch = 0;
   }
   else{
-    g-= ' ' + 1;
+    ch -= ' ' - 1;
   }
   
-  uint8_t* ft = fontsmall_data;
-  uint8_t hh = fontsmall_tall;
-  uint8_t ww = fontsmall_wide;
+  uint8_t* ft = fonttiny_data;
+  uint8_t hh = fonttiny_tall;
+  uint8_t ww = fonttiny_wide;
   
   uint32_t char_byte = 0;
   uint32_t lo_byte = 0;
   uint32_t hi_byte = 0;
   
-  g*=ww;
+  int g = ch*ww;
   int hl = 32-hh;
   if(y > hl && y < 32){
     //over boundary of two bufs
-    for(int i=0; i<hh; i++){
+    for(int i=0; i<ww; i++){
       char_byte = ft[i + g];
       lcd.fbuf_top[x  ] |= (char_byte << y);
-      lcd.fbuf_bot[x++] |= (char_byte >> (hh-(y-hl));
+      lcd.fbuf_bot[x++] |= (char_byte >> (hh-(y-hl)));
       if(x==128) return;
     }
   }
   else if(y>=32){
     y -= 32;
-    for(int i=0; i<hh; i++){
+    for(int i=0; i<ww; i++){
       lcd.fbuf_bot[x++] |= ft[i + g]<<y;
       if(x==128) return;
     }

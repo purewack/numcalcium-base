@@ -14,7 +14,7 @@ void setup(){
     lcd_drawLine(20,20,40,30);
     lcd_drawLine(20,20,22,40);
     lcd_drawLine(20,20,40,40);
-    lcd_drawStringSmall(16,48,"Hello World !");
+    lcd_drawStringTiny(16,48,"Hello World !");
 
     lcd_update();
 }

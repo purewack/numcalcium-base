@@ -1,7 +1,7 @@
-img_name = "fontsmall.png"
-out_name = "fontsmall"
+img_name = "fonttiny.png"
+out_name = "fonttiny"
 char_height = 8
-char_width = 8
+char_width = 6
 
 
 from PIL import Image
