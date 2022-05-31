@@ -344,11 +344,15 @@ void lcd_drawRectSize(int x, int y, int w, int h){
   lcd_drawVline(x+w-1,y,h);
 }
 
-void lcd_drawString8x8(int x, int y, const char* str){
-  
+
+void lcd_drawStringSmall(int x, int y, const char* str){
+	int ii = 0;
+	while(str[ii] != 0){
+		lcd_drawCharSmall(x + ii*8, y, str[ii++]);
+	}
 }
 
-void lcd_drawCharSmall(int x, int y, int g){
+void lcd_drawCharSmall(int x, int y, char g){
   uint8_t* ft = fontsmall;
   if(g < ' ' || g > 127){
     g = 0;

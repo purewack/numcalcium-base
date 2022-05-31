@@ -1,4 +1,8 @@
 #include "hw.h"
+#include <USBComposite.h>
+USBHID dd;
+HIDKeyboard Key(dd);
+USBMIDI USB_midi;
 
 void setup(){
     Serial.begin(9600);
@@ -10,10 +14,7 @@ void setup(){
     lcd_drawLine(20,20,40,30);
     lcd_drawLine(20,20,22,40);
     lcd_drawLine(20,20,40,40);
-    lcd_drawCharSmall(0,48,1);
-    lcd_drawCharSmall(16,48,'1');
-    lcd_drawCharSmall(24,48,'2');
-    lcd_drawCharSmall(32,48,'3');
+    lcd_drawStringSmall(16,48,"Hello World !");
 
     lcd_update();
 }
