@@ -256,6 +256,8 @@ void lcd_updateSection(int pageoffset, int pagelen, int offset, int len){
     gpio_write_bit(GPIOA, SPI_DC, 0);
     gpio_write_bit(GPIOA, SPI_CS, 0);
     lcd.data_seq[0] = 0b10110000 | p;
+    lcd.data_seq[1] = 0x4 | (0xf&offset);
+    lcd.data_seq[2] = 0x10 | ((0xf0&offset)>>4);
     spi_tx(SPI1, lcd.data_seq, 3);
     while(spi_is_busy(SPI1));
     gpio_write_bit(GPIOA, SPI_CS, 1);
