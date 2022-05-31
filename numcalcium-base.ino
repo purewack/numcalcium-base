@@ -20,16 +20,19 @@ void setup(){
 }
 
 int d = 0;
+char str[20];
 void loop(){
     if(io.bscan_down){
         Serial.println(io.bscan_down);
         io.bscan_down = 0;
     }
 
-    // d = (d+1)%40;
-    // lcd_clear();
-    // lcd_drawLine(5,15,5+d*2,15+d);
-    // lcd_update();
+    sprintf(str,"Count %d", d);
+
+    d++;
+    lcd_clear();
+    lcd_drawStringTiny(16,48,str);
+    lcd_update();
 
     // delay(100);
 }
