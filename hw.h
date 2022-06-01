@@ -72,6 +72,8 @@
 #include "boards.h"
 #include "io.h"
 
+#include "fonttiny.h"
+
 struct hw_t
 {
   #define S_BIT(n,b) n |= (1<<(b))

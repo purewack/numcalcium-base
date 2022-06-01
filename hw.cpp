@@ -1,5 +1,4 @@
 #include "hw.h"
-#include "fonttiny.h"
 
 hw_t io;
 soft_i2s_t i2s;
@@ -398,14 +397,16 @@ void lcd_fillRectSize(int x, int y, int w, int h, int pattern){
 }
 
 
-void lcd_drawStringTiny(int x, int y, const char* str){
+int lcd_drawString(int x, int y, font_t* font, const char* str){
 	int ii = 0;
+  int ww = 0;
 	while(str[ii] != 0){
-		lcd_drawCharTiny(x + ii*fonttiny_wide, y, str[ii++]);
+		ww += lcd_drawCharTiny(x + ii*fonttiny_wide, y, font, str[ii++]);
 	}
+  return ww;
 }
 
-void lcd_drawCharTiny(int x, int y, char ch){
+int lcd_drawChar(int x, int y, font_t* font, char ch){
   if(ch < ' ' || ch > 126){
     ch = 0;
   }
@@ -413,9 +414,9 @@ void lcd_drawCharTiny(int x, int y, char ch){
     ch -= ' ' - 1;
   }
   
-  uint8_t* ft = fonttiny_data;
-  uint8_t hh = fonttiny_tall;
-  uint8_t ww = fonttiny_wide;
+  uint8_t* ft = font->data;
+  uint8_t hh = font->tall;
+  uint8_t ww = font->wide;
   
   uint32_t char_byte = 0;
   uint32_t lo_byte = 0;
@@ -429,21 +430,23 @@ void lcd_drawCharTiny(int x, int y, char ch){
       char_byte = ft[i + g];
       lcd.fbuf_top[x  ] |= (char_byte << y);
       lcd.fbuf_bot[x++] |= (char_byte >> (hh-(y-hl)));
-      if(x==128) return;
+      if(x==128) return i;
     }
   }
   else if(y>=32){
     y -= 32;
     for(int i=0; i<ww; i++){
       lcd.fbuf_bot[x++] |= ft[i + g]<<y;
-      if(x==128) return;
+      if(x==128) return i;
     }
   }
   else{
     for(int i=0; i<ww; i++){
       lcd.fbuf_top[x++] |= ft[i + g]<<y;
-      if(x==128) return;
+      if(x==128) return i;
     }
   }
+
+  return ww;
 
 }
