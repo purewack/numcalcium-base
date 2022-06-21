@@ -354,18 +354,25 @@ void lcd_drawLine(int x, int y, int x2, int y2){
     return;
   }
 
+  if(dx < 0 && dy < 0){
+    dx *= -1;
+    x -= dx;
+    dy *= -1;
+    y -= dy;
+  } 
+  
   if(dx > dy){
-    for(int i=x; i<x+dx; i++){
-        int pp = (i*dy)/dx;
+    for(int i=0; i<dx; i++){
+        int pp = ((i+x)*dy)/dx;
         pp -= dy-y;
-        lcd_drawHline(i,pp,1);
+        lcd_drawHline((i+x),pp,1);
     }
   }
   else{
-    for(int i=y; i<y+dy; i++){
-        int pp = (i*dx)/dy;
+    for(int i=0; i<dy; i++){
+        int pp = ((i+y)*dx)/dy;
         pp -= dx-x;
-        lcd_drawHline(pp,i,1);
+        lcd_drawHline(pp,(i+y),1);
     }
   }
 }
