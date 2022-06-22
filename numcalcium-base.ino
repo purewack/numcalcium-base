@@ -20,21 +20,67 @@ void setup(){
     lcd_update();
 }
 
+double th = 0.0;
 int d = 0;
 char str[20];
 void loop(){
-    if(io.bscan_down){
-        Serial.println(io.bscan_down);
-        io.bscan_down = 0;
-    }
+    // if(io.bscan_down){
+    //     Serial.println(io.bscan_down);
+    //     io.bscan_down = 0;
+    // }
 
-    sprintf(str,"Count %d", d);
+    // sprintf(str,"Count %d", d);
 
-    d++;
-    const int xx = 32-4;
-    lcd_clearSection(xx,8,4*6,10*6,0);
-    lcd_drawStringTiny(0,xx,str);
-    lcd_updateSection(3,2,4*6,10*6);
+    // d++;
+    // const int xx = 32-4;
+    // lcd_clearSection(xx,8,4*6,10*6,0);
+    // lcd_drawStringTiny(0,xx,str);
+    // lcd_updateSection(3,2,4*6,10*6);
+    
+    
+    
+    // for(int i=20; i<60; i++){
+    //     lcd_clear();
+    //     lcd_drawRectSize(20,20,40,40);
+    //     lcd_drawLine(40,40,60,i);
+    //     lcd_drawLine(62,20,62,60);
+    //     lcd_drawHline(40,40,1);
+    //     lcd_update();
+    //     delay(50);
+    // }
+    // for(int i=20; i<60; i++){
+    //     lcd_clear();
+    //     lcd_drawRectSize(20,20,40,40);
+    //     lcd_drawLine(40,40,80-i,60);
+    //     lcd_drawLine(20,62,60,62);
+    //     lcd_drawHline(40,40,1);
+    //     lcd_update();
+    //     delay(50);
+    // }
+    // for(int i=20; i<60; i++){
+    //     lcd_clear();
+    //     lcd_drawRectSize(20,20,40,40);
+    //     lcd_drawLine(40,40,20,80-i);
+    //     lcd_drawLine(18,20,18,60);
+    //     lcd_drawHline(40,40,1);
+    //     lcd_update();
+    //     delay(50);
+    // }
+    // for(int i=20; i<60; i++){
+    //     lcd_clear();
+    //     lcd_drawRectSize(20,20,40,40);
+    //     lcd_drawLine(40,40,i,20);
+    //     lcd_drawLine(20,18,60,18);
+    //     lcd_drawHline(40,40,1);
+    //     lcd_update();
+    //     delay(50);
+    // }
 
-    // delay(100);
+
+    lcd_clear();
+    lcd_drawLine(64 + int(14.0*cos(th)),32 + int(14.0*sin(th)),64 + int(14.0*cos(th+3.1415)),32 + int(14.0*sin(th+3.1415)));
+    lcd_drawLine(64 + int(20.0*cos(th+2.09)),32 + int(20.0*sin(th+2.09)),64 + int(20.0*cos(th+3.1415+2.09)),32 + int(20.0*sin(th+3.1415+2.09)));
+    lcd_drawLine(64 + int(6.0*cos(th+4.18)),32 + int(6.0*sin(th+4.18)),64 + int(14.0*cos(th+3.1415+4.18)),32 + int(14.0*sin(th+3.1415+4.18)));
+    lcd_update();
+    th += 0.007;
 }
