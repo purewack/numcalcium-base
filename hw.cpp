@@ -344,35 +344,42 @@ void lcd_drawVline(int x, int y, int h){
 void lcd_drawLine(int x, int y, int x2, int y2){
   const int dy = (y2-y);
   const int dx = (x2-x);
+  const int nx = dx < 0 ? dx*-1 : dx;
+  const int ny = dy < 0 ? dy*-1 : dy;
 
-  if(dx == 0){
-    lcd_drawVline(x,y,dy);
-    return;
-  }
-  if(dy == 0){
-    lcd_drawHline(x,y,dx);
-    return;
-  }
+  if(dx == 0)
+    return lcd_drawVline(x,y,dy);
 
-  if(dx < 0 && dy < 0){
-    dx *= -1;
-    x -= dx;
-    dy *= -1;
-    y -= dy;
-  } 
-  
-  if(dx > dy){
-    for(int i=0; i<dx; i++){
-        int pp = ((i+x)*dy)/dx;
-        pp -= dy-y;
-        lcd_drawHline((i+x),pp,1);
+  if(dy == 0)
+    return lcd_drawHline(x,y,dx);
+
+  if(nx > ny){
+    if(dx < 0){
+      for(int i=0; i>dx; i--){
+          int yy = ((i)*dy)/dx;
+          lcd_drawHline((i+x),yy+y,1);
+      }
     }
+    else{
+      for(int i=0; i<dx; i++){
+          int yy = ((i)*dy)/dx;
+          lcd_drawHline((i+x),yy+y,1);
+      }
+    }
+    
   }
   else{
-    for(int i=0; i<dy; i++){
-        int pp = ((i+y)*dx)/dy;
-        pp -= dx-x;
-        lcd_drawHline(pp,(i+y),1);
+    if(dy < 0){
+      for(int i=0; i>dy; i--){
+          int xx = ((i)*dx)/dy;
+          lcd_drawHline(xx+x,(i+y),1);
+      }
+    }
+    else{
+      for(int i=0; i<dy; i++){
+          int xx = ((i)*dx)/dy;
+          lcd_drawHline(xx+x,(i+y),1);
+      }
     }
   }
 }
