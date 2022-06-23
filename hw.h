@@ -140,6 +140,13 @@ extern hw_t io;
 extern soft_i2s_t i2s;
 extern audio_buf_t abuf;
 extern lcd_t lcd;
+
+struct font_t {
+  uint8_t tall;
+  uint8_t wide;
+  void* data;
+  uint16_t data_count;
+};
 // struct pwm_dac_t{
 //   uint8_t inited = 0;
 // };
@@ -170,8 +177,8 @@ void lcd_drawLine(int x, int y, int x2, int y2);
 void lcd_drawRectPoint(int x, int y, int x2, int y2);
 void lcd_drawRectSize(int x, int y, int w, int h);
 void lcd_fillRectSize(int x, int y, int w, int h, int pattern);
-void lcd_drawCharTiny(int x, int y, char g);
-void lcd_drawStringTiny(int x, int y, const char* str);
+int lcd_drawChar(int x, int y, font_t font_info, char g);
+int lcd_drawString(int x, int y, font_t font_info, const char* str);
 
 void benchSetup();
 void benchStart();

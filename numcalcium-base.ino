@@ -9,11 +9,11 @@ void setup(){
     base_init();
     lcd_fade(1);
     lcd_clear();
-
     lcd_drawRectSize(0,0,40,40);
     lcd_drawLine(20,20,40,30);
     lcd_drawLine(20,20,22,40);
     lcd_drawLine(20,20,40,40);
+    font_t fonttiny = {fonttiny_tall,fonttiny_wide, (void*)fonttiny_data, fonttiny_data_count};
     lcd_drawString(16,48, fonttiny, "Hello World !");
     lcd_fillRectSize(65,5,30,10, 0);
 
@@ -77,7 +77,7 @@ void loop(){
     // }
 
 
-    lcd_clear();
+    lcd_clearSection(32-20,40,64-20,40,0);
     lcd_drawLine(64 + int(14.0*cos(th)),32 + int(14.0*sin(th)),64 + int(14.0*cos(th+3.1415)),32 + int(14.0*sin(th+3.1415)));
     lcd_drawLine(64 + int(20.0*cos(th+2.09)),32 + int(20.0*sin(th+2.09)),64 + int(20.0*cos(th+3.1415+2.09)),32 + int(20.0*sin(th+3.1415+2.09)));
     lcd_drawLine(64 + int(6.0*cos(th+4.18)),32 + int(6.0*sin(th+4.18)),64 + int(14.0*cos(th+3.1415+4.18)),32 + int(14.0*sin(th+3.1415+4.18)));
