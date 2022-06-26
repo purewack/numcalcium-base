@@ -71,8 +71,9 @@ void io_mux_irq(){
   }
   
   else if(io.op == 2){
-    gpio_write_bit(GPIOB, 9, 1);
+    //gpio_write_bit(GPIOB, 9, 1);
     io.ok = gpio_read_bit(GPIOA, 8);
+    //gpio_write_bit(GPIOB, 9, 0);
     io.op = 3;
     return;
   }
