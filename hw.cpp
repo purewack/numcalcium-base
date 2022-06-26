@@ -49,12 +49,8 @@ void io_mux_init(){
 void io_mux_irq(){
 
   if(io.op == 0){
+    io.ok |= gpio_read_bit(GPIOA, 8)>>8;
     gpio_write_bit(io.row < 2 ? GPIOA : GPIOB, io.seq_row[io.row], 1);
-    io.op = 1;
-    return;
-  }
-
-  else if(io.op == 1){
     uint32_t a = GPIOB->regs->IDR;
     gpio_write_bit(io.row < 2 ? GPIOA : GPIOB, io.seq_row[io.row], 0);
     uint32_t ii = io.row*4;
@@ -66,16 +62,20 @@ void io_mux_irq(){
     io.bscan_up |= (io.bstate_old & (~io.bstate));
     
     io.row = (io.row+1)%5;
-    io.op = 2;
+    io.op = 1;
     return;
   }
-  
-  else if(io.op == 2){
-    //gpio_write_bit(GPIOB, 9, 1);
-    io.ok = gpio_read_bit(GPIOA, 8);
-    //gpio_write_bit(GPIOB, 9, 0);
-    io.op = 3;
-    return;
+
+  if(io.op == 1){
+    //encoder
+    gpio_write_bit(GPIOB, 9, 1);
+    uint32_t a = GPIOB->regs->IDR;
+    gpio_write_bit(GPIOB, 9, 0);
+    io.turns_state = (io.turns_state<<2) | ((a&0x800)>>11) | ((a&0x400)>>9);
+    if((io.turns_state&0xf) == 0b1011) io.turns_right++;
+    if((io.turns_state&0xf) == 0b0111) io.turns_left++;
+
+    io.op = 0;
   }
 
   io.op = 0;
