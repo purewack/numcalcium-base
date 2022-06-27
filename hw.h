@@ -179,6 +179,11 @@ void lcd_fillRectSize(int x, int y, int w, int h, int pattern);
 int lcd_drawChar(int x, int y, font_t font_info, char g);
 int lcd_drawString(int x, int y, font_t font_info, const char* str);
 
+#define DRAWBITMAP_SOLID 0
+#define DRAWBITMAP_TRANS 1
+#define DRAWBITMAP_XOR 2
+int lcd_drawTile(int x, int y, int w, int h, int sbuf, void* buf, int mode);
+
 void benchSetup();
 void benchStart();
 void benchEnd();

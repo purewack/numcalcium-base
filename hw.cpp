@@ -422,45 +422,47 @@ int lcd_drawString(int x, int y, font_t f ,const char* str){
 }
 
 int lcd_drawChar(int x, int y, font_t f, char ch){
-  if(ch < ' ' || ch > 126){
-    ch = 0;
-  }
-  else{
-    ch -= ' ' - 1;
-  }
-  
-  uint8_t hh = f.tall;
-  uint8_t ww = f.wide;
-  
-  uint32_t char_byte = 0;
-  uint32_t lo_byte = 0;
-  uint32_t hi_byte = 0;
-  
-  int g = ch*ww;
-  int hl = 32-hh;
-  if(y > hl && y < 32){
-    //over boundary of two bufs
-    for(int i=0; i<ww; i++){
-      char_byte = f.tall <= 8 ? ((uint8_t*)f.data)[i + g] : ((uint16_t*)f.data)[i + g];
-      lcd.fbuf_top[x  ] |= (char_byte << y);
-      lcd.fbuf_bot[x++] |= (char_byte >> (hh-(y-hl)));
-      if(x==128) return i;
-    }
-  }
-  else if(y>=32){
-    y -= 32;
-    for(int i=0; i<ww; i++){
-      lcd.fbuf_bot[x++] |= f.tall <= 8 ? ((uint8_t*)f.data)[i + g]<<y : ((uint16_t*)f.data)[i + g]<<y;
-      if(x==128) return i;
-    }
-  }
-  else{
-    for(int i=0; i<ww; i++){
-      lcd.fbuf_top[x++] |= f.tall <= 8 ? ((uint8_t*)f.data)[i + g]<<y : ((uint16_t*)f.data)[i + g]<<y;
-      if(x==128) return i;
-    }
-  }
+  ch = (ch < ' ' || ch > 126) ? 0 : (ch-' '+1);
+  return lcd_drawTile(x,y,f.wide,f.tall,ch*f.wide,f.data,DRAWBITMAP_SOLID);
+}
 
-  return ww;
+int lcd_drawTile(int x, int y, int w, int h, int sbuf, void* buf, int mode){
 
+	uint32_t char_byte = 0;
+	
+	int g = sbuf;
+	int hl = 32-h;
+
+	for(int i=0; i<w; i++){
+		char_byte = h <= 8 ? ((uint8_t*)buf)[i + g] : ((uint16_t*)buf)[i + g];
+
+		if(y<32){	
+			if(mode == DRAWBITMAP_SOLID) 
+				lcd.fbuf_top[x] &= (~((1<<h)-1 << y));
+		
+			if(mode == DRAWBITMAP_XOR) 
+				lcd.fbuf_top[x] ^= (char_byte << y);
+			else
+				lcd.fbuf_top[x] |= (char_byte << y);
+		}
+		if(y >= 32-h){
+			int yy = y;
+			if(y<32) {
+				char_byte >>= 32-yy;
+				yy += 32-yy;
+			}
+			if(mode == DRAWBITMAP_SOLID) 
+				lcd.fbuf_bot[x] &= (~((1<<h)-1 << yy-32));
+			
+			if(mode == DRAWBITMAP_XOR) 
+				lcd.fbuf_bot[x] ^= (char_byte << (yy-32));
+			else
+				lcd.fbuf_bot[x] |= (char_byte << (yy-32));
+		}
+		
+		x++;
+		if(x==128) return i;
+	}
+  
+	return w;
 }
