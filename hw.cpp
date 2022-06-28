@@ -434,7 +434,7 @@ int lcd_drawTile(int x, int y, int w, int h, int sbuf, void* buf, int mode){
 	int hl = 32-h;
 
 	for(int i=0; i<w; i++){
-		char_byte = 0xff;//h <= 8 ? ((uint8_t*)buf)[i + g] : ((uint16_t*)buf)[i + g];
+		char_byte = h <= 8 ? ((uint8_t*)buf)[i + g] : ((uint16_t*)buf)[i + g];
 
 		if(y<32){	
 			if(mode == DRAWBITMAP_SOLID) 
