@@ -423,7 +423,7 @@ int lcd_drawString(int x, int y, font_t f ,const char* str){
 
 int lcd_drawChar(int x, int y, font_t f, char ch){
   ch = (ch < ' ' || ch > 126) ? 0 : (ch-' '+1);
-  return lcd_drawTile(x,y,f.wide,f.tall,ch*f.wide,f.data,DRAWBITMAP_SOLID);
+  return lcd_drawTile(x,y,f.wide,f.tall,ch*f.wide,f.data,DRAWBITMAP_XOR);
 }
 
 int lcd_drawTile(int x, int y, int w, int h, int sbuf, void* buf, int mode){
@@ -434,7 +434,7 @@ int lcd_drawTile(int x, int y, int w, int h, int sbuf, void* buf, int mode){
 	int hl = 32-h;
 
 	for(int i=0; i<w; i++){
-		char_byte = h <= 8 ? ((uint8_t*)buf)[i + g] : ((uint16_t*)buf)[i + g];
+		char_byte = 0xff;//h <= 8 ? ((uint8_t*)buf)[i + g] : ((uint16_t*)buf)[i + g];
 
 		if(y<32){	
 			if(mode == DRAWBITMAP_SOLID) 
