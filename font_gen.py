@@ -1,11 +1,13 @@
-img_name = "fonttiny.png"
-out_name = "fonttiny"
-char_height = 8
-char_width = 6
-
-
 from PIL import Image
 import numpy
+import sys
+
+#python 'name' height width
+
+out_name = sys.argv[1]
+char_height = int(sys.argv[2])
+char_width = int(sys.argv[3])
+img_name = out_name + ".png"
 
 img = Image.open(img_name)
 data = numpy.asarray(img.getdata())
@@ -19,14 +21,14 @@ with open(out_name + ".hpp", 'w') as hpp:
     hpp.write("#include <libmaple/libmaple_types.h>\n")
     hpp.write("extern uint8_t " + out_name + "_tall = " + str(char_height) + ";\n") 
     hpp.write("extern uint8_t " + out_name + "_wide = " + str(char_width) + ";\n") 
-    hpp.write("extern uint16_t " + out_name + "_count = " + str(w/char_width) + ";\n") 
+    hpp.write("extern uint16_t " + out_name + "_count = " + str((w/char_width)) + ";\n") 
     hpp.write("extern uint" + str(char_height) + "_t" + out_name + "_data [" + str(w) + "];\n");
 
 with open(out_name + ".cpp", 'w') as f:
-    f.write("#include \"" + out_name ".h\" \n\n")
+    f.write("#include \"" + out_name + ".h\" \n\n")
     f.write("uint8_t " + out_name + "_tall = " + str(char_height) + ";\n")
     f.write("uint8_t " + out_name + "_wide = " + str(char_width) + ";\n")
-    f.write("uint16_t " + out_name + "_count = " + str(w/char_width) + ";\n")
+    f.write("uint16_t " + out_name + "_count = " + str((w/char_width)) + ";\n")
 
     f.write("uint" + str(char_height) + "_t " + out_name + "_data [" + str(w) + "] = {\n")
     for x in range(w):
