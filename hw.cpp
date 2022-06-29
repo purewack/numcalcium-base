@@ -49,7 +49,7 @@ void io_mux_init(){
 void io_mux_irq(){
 
   if(io.op == 0){
-    io.ok |= gpio_read_bit(GPIOA, 8)>>8;
+    io.ok = gpio_read_bit(GPIOA, 8)>>8;
     gpio_write_bit(io.row < 2 ? GPIOA : GPIOB, io.seq_row[io.row], 1);
     uint32_t a = GPIOB->regs->IDR;
     gpio_write_bit(io.row < 2 ? GPIOA : GPIOB, io.seq_row[io.row], 0);
