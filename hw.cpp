@@ -427,6 +427,10 @@ int lcd_drawChar(int x, int y, font_t f, char ch){
 }
 
 int lcd_drawTile(int x, int y, int w, int h, int sbuf, void* buf, int mode){
+	if(x+w < 0) return 0;
+	if(x > 128) return 0;
+	if(y+h < 0) return 0;
+	if(y > 64) return 0;
 
 	uint32_t char_byte = 0;
 	
@@ -434,9 +438,20 @@ int lcd_drawTile(int x, int y, int w, int h, int sbuf, void* buf, int mode){
 	int hl = 32-h;
 
 	for(int i=0; i<w; i++){
+		if(x < 0) {
+			x++;
+			continue;
+		}
+		if(x+i > 128)
+			continue;
+
 		char_byte = h <= 8 ? ((uint8_t*)buf)[i + g] : ((uint16_t*)buf)[i + g];
 
 		if(y<32){	
+			if(y < 0){
+				char_byte >>= 0-yy;
+				yy += 0-yy;
+			}
 			if(mode == DRAWBITMAP_SOLID) 
 				lcd.fbuf_top[x] &= (~((1<<h)-1 << y));
 		
