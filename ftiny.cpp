@@ -1,4 +1,4 @@
-#include "ftiny.h" 
+#include "ftiny.hpp" 
 
 uint8_t ftiny_tall = 8;
 uint8_t ftiny_wide = 6;
