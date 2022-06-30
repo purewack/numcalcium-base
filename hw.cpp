@@ -447,21 +447,21 @@ int lcd_drawTile(int x, int y, int w, int h, int sbuf, void* buf, int mode){
 
 		char_byte = h <= 8 ? ((uint8_t*)buf)[i + g] : ((uint16_t*)buf)[i + g];
 
+		int yy = y;
 		if(y<32){	
 			if(y < 0){
 				char_byte >>= 0-yy;
 				yy += 0-yy;
 			}
 			if(mode == DRAWBITMAP_SOLID) 
-				lcd.fbuf_top[x] &= (~((1<<h)-1 << y));
+				lcd.fbuf_top[x] &= (~((1<<h)-1 << yy));
 		
 			if(mode == DRAWBITMAP_XOR) 
-				lcd.fbuf_top[x] ^= (char_byte << y);
+				lcd.fbuf_top[x] ^= (char_byte << yy);
 			else
-				lcd.fbuf_top[x] |= (char_byte << y);
+				lcd.fbuf_top[x] |= (char_byte << yy);
 		}
 		if(y >= 32-h){
-			int yy = y;
 			if(y<32) {
 				char_byte >>= 32-yy;
 				yy += 32-yy;
