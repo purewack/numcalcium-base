@@ -19,13 +19,13 @@ h = img.size[1]
 with open(out_name + ".hpp", 'w') as hpp:
     hpp.write("#pragma once\n\n")
     hpp.write("#include <libmaple/libmaple_types.h>\n")
-    hpp.write("extern uint8_t " + out_name + "_tall = " + str(char_height) + ";\n") 
-    hpp.write("extern uint8_t " + out_name + "_wide = " + str(char_width) + ";\n") 
-    hpp.write("extern uint16_t " + out_name + "_count = " + str((w/char_width)) + ";\n") 
-    hpp.write("extern uint" + str(char_height) + "_t" + out_name + "_data [" + str(w) + "];\n");
+    hpp.write("extern uint8_t " + out_name + "_tall;\n") 
+    hpp.write("extern uint8_t " + out_name + "_wide;\n") 
+    hpp.write("extern uint16_t " + out_name + "_count;\n") 
+    hpp.write("extern uint" + str(char_height) + "_t " + out_name + "_data [" + str(w) + "];\n");
 
 with open(out_name + ".cpp", 'w') as f:
-    f.write("#include \"" + out_name + ".h\" \n\n")
+    f.write("#include \"" + out_name + ".hpp\" \n\n")
     f.write("uint8_t " + out_name + "_tall = " + str(char_height) + ";\n")
     f.write("uint8_t " + out_name + "_wide = " + str(char_width) + ";\n")
     f.write("uint16_t " + out_name + "_count = " + str((w/char_width)) + ";\n")
