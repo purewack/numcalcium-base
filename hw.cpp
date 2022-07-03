@@ -423,14 +423,18 @@ int lcd_drawString(int x, int y, font_t f ,const char* str){
 
 int lcd_drawChar(int x, int y, font_t f, char ch){
   ch = (ch < ' ' || ch > 126) ? 0 : (ch-' '+1);
-  return lcd_drawTile(x,y,f.wide,f.tall,ch*f.wide,f.data,DRAWBITMAP_XOR);
+  return lcd_drawTile(x,y,f.wide,f.tall,ch*f.wide,f.wide*f.data_count,f.data,DRAWBITMAP_XOR);
 }
 
 int lcd_drawTile(int x, int y, int w, int h, int sbuf, void* buf, int mode){
+  return lcd_drawTile(x,y,w,h,sbuf,w,buf,mode);
+}
+
+int lcd_drawTile(int x, int y, int w, int h, int sbuf, int blen, void* buf, int mode){
 	if(x+w < 0) return 0;
-	if(x > 128) return 0;
+	if(x >= 128) return 0;
 	if(y+h < 0) return 0;
-	if(y > 64) return 0;
+	if(y >= 64) return 0;
 
 	uint32_t char_byte = 0;
 	
@@ -442,10 +446,11 @@ int lcd_drawTile(int x, int y, int w, int h, int sbuf, void* buf, int mode){
 			x++;
 			continue;
 		}
-		if(x+i > 128)
-			continue;
+		if(x >= 128) break;
 
-		char_byte = h <= 8 ? ((uint8_t*)buf)[i + g] : ((uint16_t*)buf)[i + g];
+    int p = blen == 0 ? 0 : (i + g)%blen;
+
+    char_byte = h <= 8 ? ((uint8_t*)buf)[p] : ((uint16_t*)buf)[p];
 
 		int yy = y;
 		if(y<32){	

@@ -182,6 +182,8 @@ int lcd_drawString(int x, int y, font_t font_info, const char* str);
 #define DRAWBITMAP_SOLID 0
 #define DRAWBITMAP_TRANS 1
 #define DRAWBITMAP_XOR 2
+
+int lcd_drawTile(int x, int y, int w, int h, int sbuf, int buflen, void* buf, int mode);
 int lcd_drawTile(int x, int y, int w, int h, int sbuf, void* buf, int mode);
 
 void benchSetup();
