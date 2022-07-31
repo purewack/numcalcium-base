@@ -190,13 +190,12 @@ void benchSetup();
 void benchStart();
 void benchEnd();
 
+extern int32_t shared_int32_1024[1024];
 extern uint32_t adc_state;
 extern uint32_t adc_srate;
-#define IS_ADC_BUSY (DMA1->regs.CNDTR1)
+#define IS_ADC_BUSY (DMA1->regs->CNDTR1)
 void adc_set_srate_type(int8_t type);
 void adc_block_get(uint16_t* buf, uint16_t n);
 void adc_block_get_complex(uint32_t* buf, uint16_t n);
-void adc_init();
-void adc_deinit();
-
-int32_t shared_int32_1024[1024];
+void adc_block_init();
+void adc_block_deinit();
