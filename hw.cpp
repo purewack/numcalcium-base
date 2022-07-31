@@ -194,6 +194,45 @@ void soft_i2s_bits_irq(){
 
 // }
 
+void adc_block_init(){
+  if(adc_state & 1) return;
+  adc_init(ADC1);
+  adc_set_prescaler(ADC_PRE_PCLK2_DIV_2);
+  adc_set_sample_rate(ADC_SMPR_1_5);  
+  timer_pause(TIMER2);
+  timer_set_prescaler(TIMER2, 999);
+  timer_set_reload(TIMER2, 1);
+  timer_set_compare(TIMER2, TIMER_CH2, 0);
+  timer_attach_interrupt(TIMER2, TIMER_UPDATE_INTERRUPT, io_mux_irq);
+  timer_enable_irq(TIMER2, TIMER_UPDATE_INTERRUPT);
+  timer_resume(TIMER2);
+  adc_enable(ADC1);
+  adc_state |= 1;
+}
+
+void adc_block_deinit(){
+  if(!(adc_state & 1)) return;
+
+  adc_state &= ~(1);
+}
+
+void adc_set_srate(uint8_t i){
+  adc_disable(ADC1);  
+  timer_pause(TIMER2);
+  switch(i){
+    case 0:
+      timer_set_prescaler(TIMER2, 999);
+      timer_set_reload(TIMER2, 1);
+      break;
+  }  
+  timer_resume(TIMER2);
+  adc_enable(ADC1);
+}
+
+void adc_block_get(uint16_t* buf, uint16_t n, uint8_t psc){
+  adc_diable(ADC1);
+}
+
 void lcd_fade(int in){
   gpio_set_mode(GPIOA, LCD_LIGHT_PWM, GPIO_OUTPUT_PP); 
   gpio_write_bit(GPIOA, LCD_LIGHT_PWM, 0);

@@ -189,3 +189,13 @@ int lcd_drawTile(int x, int y, int w, int h, int sbuf, void* buf, int mode);
 void benchSetup();
 void benchStart();
 void benchEnd();
+
+extern uint32_t adc_state;
+extern uint32_t adc_srate;
+#define IS_ADC_DONE (ADC1->regs.SR & ADC_SR_EOC_BIT);
+void adc_set_srate(uint8_t id);
+void adc_block_get(uint16_t* buf, uint16_t n);
+void adc_init();
+void adc_deinit();
+
+int32_t shared_int32_1024[1024];
