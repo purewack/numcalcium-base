@@ -197,40 +197,80 @@ void soft_i2s_bits_irq(){
 void adc_block_init(){
   if(adc_state & 1) return;
   adc_init(ADC1);
-  adc_set_prescaler(ADC_PRE_PCLK2_DIV_2);
-  adc_set_sample_rate(ADC_SMPR_1_5);  
-  timer_pause(TIMER2);
-  timer_set_prescaler(TIMER2, 999);
-  timer_set_reload(TIMER2, 1);
-  timer_set_compare(TIMER2, TIMER_CH2, 0);
-  timer_attach_interrupt(TIMER2, TIMER_UPDATE_INTERRUPT, io_mux_irq);
-  timer_enable_irq(TIMER2, TIMER_UPDATE_INTERRUPT);
-  timer_resume(TIMER2);
+  adc_set_prescaler(ADC_PRE_PCLK2_DIV_4); //48MHz / 4 = 12MHz
+  adc_set_sample_rate(ADC_SMPR_1_5);  //max srate 856kHz
+  adc_set_reg_seqlen(ADC1, 1);
+  adc_set_extsel(ADC1, ADC_ADC12_TIM2_CC2);
+  adc_set_exttrig(ADC1, 1);
   adc_enable(ADC1);
+  //adc_calibrate(ADC1);
+
+  timer_pause(TIMER2);
+  timer_set_compare(TIMER2, TIMER_CH2, 0);
+  timer_dettach_interrupt(TIMER2, TIMER_CH2);
+  timer_enable_irq(TIMER2, TIMER_CC2_INTERRUPT);
+  timer_resume(TIMER2);
+
+  dma_init(DMA1);
+  dma_disable(DMA1, DMA_CH1);
+  dma_set_priority(DMA1, DMA_CH1, DMA_PRIORITY_HIGH);
+  dma_detach_interrupt(DMA1, CH1);
+
+  gpio_set_mode(GPIOA,0,GPIO_INPUT_ANALOG);
+
+//DEBUG
+  timer_cc_enable(TIMER2, TIMER_CH2);
+  gpio_set_mode(GPIOA,1,GPIO_AF_OUTPUT_PP);
+//DEBUG
+
+  adc_set_srate_type(0);
   adc_state |= 1;
 }
 
 void adc_block_deinit(){
   if(!(adc_state & 1)) return;
-
+  adc_disable(ADC1);    
+  timer_pause(TIMER2);
+  timer_disable(TIMER2);
+  dma_disable(DMA1, DMA_CH1);
+  gpio_set_mode(GPIOA,0,GPIO_INPUT_FLOATING);
   adc_state &= ~(1);
 }
 
-void adc_set_srate(uint8_t i){
+void adc_set_srate(int8_t i){
   adc_disable(ADC1);  
   timer_pause(TIMER2);
   switch(i){
-    case 0:
-      timer_set_prescaler(TIMER2, 999);
-      timer_set_reload(TIMER2, 1);
+    case 0: //48k
+      timer_set_prescaler(TIMER2, 100-1);
+      timer_set_reload(TIMER2, 10-1);
+      timer_set_compare(TIMER2, TIMER_CH2, 5-1);
+      break;
+
+    case -1: //24k
+      timer_set_prescaler(TIMER2, 200-1);
+      timer_set_reload(TIMER2, 10-1);
+      timer_set_compare(TIMER2, TIMER_CH2, 5-1);
       break;
   }  
   timer_resume(TIMER2);
   adc_enable(ADC1);
 }
 
-void adc_block_get(uint16_t* buf, uint16_t n, uint8_t psc){
-  adc_diable(ADC1);
+void adc_block_get(uint16_t* buf, uint16_t n){
+  dma_disable(DMA1, DMA_CH1);
+  int m = DMA_MINC_MODE;
+  dma_setup_transfer(DMA1, DMA_CH1 , &ADC1->regs.DR, DMA_SIZE_16BITS, buf, DMA_SIZE_16BITS, m);
+  dma_set_num_transfers(DMA1, DMA_CH1, n);  
+  dma_enable(DMA1, DMA_CH1);
+}
+
+void adc_block_get_complex(uint32_t* buf, uint16_t n){
+  dma_disable(DMA1, DMA_CH1);
+  int m = DMA_MINC_MODE;
+  dma_setup_transfer(DMA1, DMA_CH1 , &ADC1->regs.DR, DMA_SIZE_16BITS, buf, DMA_SIZE_32BITS, m);
+  dma_set_num_transfers(DMA1, DMA_CH1, n);  
+  dma_enable(DMA1, DMA_CH1);
 }
 
 void lcd_fade(int in){
