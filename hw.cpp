@@ -243,12 +243,14 @@ void adc_set_srate_type(int8_t i){
   timer_pause(TIMER2);
   switch(i){
     case 0: //48k
+	adc_srate = 48000;
       timer_set_prescaler(TIMER2, 100-1);
       timer_set_reload(TIMER2, 10-1);
       timer_set_compare(TIMER2, TIMER_CH2, 5-1);
       break;
 
     case -1: //24k
+	adc_srate = 24000;
       timer_set_prescaler(TIMER2, 200-1);
       timer_set_reload(TIMER2, 10-1);
       timer_set_compare(TIMER2, TIMER_CH2, 5-1);
