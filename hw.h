@@ -30,14 +30,14 @@
 
 #define B_OK PA8
 
-#define GP_A PA0
 #define GP_B PA1
+#define GP_A PA0
 #define COMMS_SDA PB7
-#define COMMS_SDL PB6
-#define COMMS_MOSI PB15
-#define COMMS_MISO PB14
-#define COMMS_CK   PB13
+#define COMMS_SCL PB6
 #define COMMS_CS PB12
+#define COMMS_CK   PB13
+#define COMMS_MISO PB14
+#define COMMS_MOSI PB15
 #define COMMS_RX PA10
 #define COMMS_TX PA9
 
