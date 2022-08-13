@@ -225,7 +225,7 @@ void adc_block_init(){
 
   gpio_set_mode(GPIOA,0,GPIO_INPUT_ANALOG);
 
-  adc_set_srate_type(0);
+  adc_set_srate(-1);
   adc_state |= 1;
 }
 
@@ -239,23 +239,24 @@ void adc_block_deinit(){
   adc_state &= ~(1);
 }
 
-void adc_set_srate_type(int8_t i){
+void adc_set_srate(int32_t srate){
   timer_pause(TIMER2);
-  switch(i){
-    case 0: //48k
-	adc_srate = 48000;
-      timer_set_prescaler(TIMER2, 100-1);
-      timer_set_reload(TIMER2, 10-1);
-      timer_set_compare(TIMER2, TIMER_CH2, 5-1);
-      break;
+  
+  if(srate == -1) srate = 820512;
 
-    case -1: //24k
-	adc_srate = 24000;
-      timer_set_prescaler(TIMER2, 200-1);
-      timer_set_reload(TIMER2, 10-1);
-      timer_set_compare(TIMER2, TIMER_CH2, 5-1);
-      break;
-  }  
+  uint8_t psc = 1;
+  uint32_t arr = (48000000/srate);
+  while(arr > (1<<16)) {
+    arr >>= 1;
+    psc++;
+  }
+
+  timer_set_compare(TIMER2, TIMER_CH2, 1);
+  timer_set_prescaler(TIMER2, psc-1);
+  timer_set_reload(TIMER2, arr-1);
+  
+  adc_srate = 48000000/(arr*psc);  
+
   timer_resume(TIMER2);
 }
 
