@@ -15,4 +15,4 @@ Holds all buttons that transitioned from up to down state, buffered so requires 
 		io.bscan_down &= ~(1<<K_X);
 	}
 
-### Soft I2S uses timer 
+<!-- ### Soft I2S uses timer  -->
